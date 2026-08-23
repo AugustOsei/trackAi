@@ -76,6 +76,38 @@ async function seed() {
         providerBlurb: "Rumored open-weights successor to the Llama 4 line.",
         benchmarkSource: null,
       },
+      // Same-day release as GPT-5.2 — exercises the date-grouping path.
+      {
+        name: "Sonnet 5.2",
+        slug: "sonnet-5-2",
+        provider: "Anthropic",
+        status: "released",
+        actualDate: "2026-08-20",
+        providerBlurb:
+          "Mid-tier sibling to Opus 5, tuned for latency-sensitive production work.",
+        intelligenceIndex: "66.4",
+        codingIndex: "72.8",
+        pricePerMtok: "3.000",
+        speedTps: "138.0",
+        benchmarkSource: "Artificial Analysis",
+        benchmarkUpdatedAt: new Date(),
+      },
+      // One day after — exercises adjacent-day spacing.
+      {
+        name: "Gemini 3 Flash",
+        slug: "gemini-3-flash",
+        provider: "Google DeepMind",
+        status: "released",
+        actualDate: "2026-08-21",
+        providerBlurb:
+          "Cost-optimized Gemini 3 variant with the same context window.",
+        intelligenceIndex: "61.0",
+        codingIndex: "64.2",
+        pricePerMtok: "0.400",
+        speedTps: "220.0",
+        benchmarkSource: "Artificial Analysis",
+        benchmarkUpdatedAt: new Date(),
+      },
     ])
     .returning();
 

@@ -44,6 +44,16 @@ export function formatMonthYear(value: Date): string {
     .toUpperCase();
 }
 
+export function formatMonthYearShort(value: Date): string {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  })
+    .format(value)
+    .toUpperCase();
+}
+
 export function isRecent(value: Date, days = 10): boolean {
   const ageMs = Date.now() - new Date(value).getTime();
   return ageMs >= 0 && ageMs < days * 24 * 60 * 60 * 1000;

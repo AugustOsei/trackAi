@@ -487,3 +487,69 @@ of how tall the expanded content underneath it gets.
 
 `npm run build` clean. Verified both breakpoints, and the expand
 interaction with the now-anchored connector.
+
+## 2026-08-23 — Eighth pass: a real scroll region, gradient trails, drifting icons
+
+Four issues raised at once, three of them real defects rather than taste:
+
+**1. Trails were solid bars that didn't land on the icons.** The previous
+round positioned the dot and connector as siblings in the row grid with a
+hand-tuned `pt-[21px]` offset — which meant they were aligned to a guess
+about where the icon's centre was, not to the icon itself. Rebuilt so the
+dot and trail are absolutely positioned *inside the entry header*, which
+is a `flex items-center` row whose height is set by the icon. `top-1/2`
+on that box is therefore the icon's centre by construction, not by
+arithmetic. Measured it afterwards rather than eyeballing: trail spans
+616→640px with the spine at 640, icon edge at 616 — exact, on both sides.
+Also swapped the flat fill for a gradient (`transparent → provider colour`)
+so it emerges from the spine and lands solid on the icon, flipping
+direction only at the breakpoint where entries actually sit left of the
+spine.
+
+**2. Icons were static.** Added a continuous `timeline-float` drift
+(±4px, 4.5s, staggered per entry so they desync). It lives on its own
+wrapper nested inside the pop-animation wrapper inside the hover-transform
+wrapper — three elements, three transform concerns, none fighting each
+other. That nesting is deliberate: an `animation-fill-mode: both` holds
+its end-state transform, which would silently clobber a hover transform
+on the same element.
+
+**3. "How does this handle same-day releases?"** It didn't — and that's a
+guaranteed real-world case, since labs routinely ship siblings together.
+Now grouped by exact date: one dot and one trail per *date*, with all
+models from that day stacked beside it. Added Sonnet 5.2 (same day as
+GPT-5.2) and Gemini 3 Flash (one day later) to the seed specifically so
+this path is exercised rather than assumed.
+
+**4. The timeline needed to be a scroll region, not the whole page.** This
+was the biggest structural change. The timeline now lives in its own
+bordered frame with a fixed viewport height, and:
+- generates a *continuous* month sequence (6 months back → 6 months
+  forward, auto-widened to include any model outside that window), so
+  empty months still render as markers and it reads as a calendar rather
+  than a list that happens to be sorted
+- opens centred on TODAY, computed via `offsetTop` rather than
+  `scrollIntoView` — the latter would have yanked the whole page down too
+- `overscroll-behavior: contain` so reaching the end of the inner scroll
+  doesn't chain into scrolling the page; move the mouse outside the frame
+  and the page scrolls normally, which is what was asked for
+- click-drag panning (mouse only — touch already has native momentum),
+  with a movement threshold so a drag that ends over an entry doesn't also
+  toggle it open
+- up/down page buttons that auto-disable at each end, and a Today button
+
+**Verification note.** The browser automation's coordinate input silently
+delivers nothing in this sandbox — I confirmed it by attaching a capture
+listener for `pointerdown`/`mousedown` and watching a `left_click_drag`
+and then a plain `left_click` produce *zero* events. So the drag was
+verified by dispatching real `PointerEvent`s and asserting on scroll
+position: drag up clamped correctly at max scroll, drag down moved exactly
+-200px for a 200px gesture, and the drag-then-click suppression behaved
+across all four states (plain click opens, drag+click stays closed, next
+plain click opens again). Worth recording that an earlier version of that
+same test looked like a regression purely because it read `aria-expanded`
+synchronously after `.click()` — React hadn't re-rendered yet. The test
+was wrong, not the code; re-running it with awaits showed all four states
+correct.
+
+`npm run build` clean.
