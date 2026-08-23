@@ -5,6 +5,8 @@ import {
   varchar,
   integer,
   numeric,
+  boolean,
+  jsonb,
   timestamp,
   date,
   pgEnum,
@@ -45,15 +47,25 @@ export const models = pgTable(
     status: modelStatusEnum("status").notNull().default("announced"),
     predictedDate: date("predicted_date"),
     actualDate: date("actual_date"),
+    /**
+     * The CLAIM layer — strictly what the provider itself says.
+     *
+     * Deliberately not a fixed set of benchmark columns: every lab quotes
+     * different tests (SWE-bench, GPQA, AIME, their own evals) so a rigid
+     * schema would either drop most of what a lab reported or leave columns
+     * permanently empty. Stored as an ordered list of exactly the figures
+     * that lab chose to publish.
+     */
     providerBlurb: text("provider_blurb"),
-
-    // Benchmark snapshot (Artificial Analysis)
-    intelligenceIndex: numeric("intelligence_index", { precision: 5, scale: 1 }),
-    codingIndex: numeric("coding_index", { precision: 5, scale: 1 }),
+    announcementUrl: text("announcement_url"),
+    claimedBenchmarks: jsonb("claimed_benchmarks")
+      .$type<{ label: string; value: string }[]>()
+      .default([]),
+    /** Provider-published list price; the one figure every lab states the same way. */
     pricePerMtok: numeric("price_per_mtok", { precision: 10, scale: 3 }),
-    speedTps: numeric("speed_tps", { precision: 8, scale: 1 }),
-    benchmarkSource: varchar("benchmark_source", { length: 120 }),
-    benchmarkUpdatedAt: timestamp("benchmark_updated_at", { withTimezone: true }),
+    /** Set when the blurb was machine-drafted, so the page can say so. */
+    summaryIsAutoDrafted: boolean("summary_is_auto_drafted").notNull().default(false),
+    claimUpdatedAt: timestamp("claim_updated_at", { withTimezone: true }),
 
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },

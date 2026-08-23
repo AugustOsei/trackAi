@@ -5,7 +5,7 @@ import { StatusDot } from "@/components/status-dot";
 import { ProviderBadge } from "@/components/provider-badge";
 import { Perforation } from "@/components/perforation";
 import { ReportCard } from "@/components/report-card";
-import { TASK_LABELS, formatDate, formatIndex, formatPrice, formatSpeed } from "@/lib/format";
+import { TASK_LABELS, formatDate, formatPrice } from "@/lib/format";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -22,19 +22,14 @@ export async function generateMetadata({
   };
 }
 
-const STATS: { key: "intelligenceIndex" | "codingIndex" | "pricePerMtok" | "speedTps"; label: string; format: (v: string | null) => string }[] = [
-  { key: "intelligenceIndex", label: "Intelligence index", format: formatIndex },
-  { key: "codingIndex", label: "Coding index", format: formatIndex },
-  { key: "pricePerMtok", label: "Price / Mtok", format: formatPrice },
-  { key: "speedTps", label: "Output speed", format: formatSpeed },
-];
-
 export default async function ModelDetailPage({
   params,
 }: PageProps<"/models/[slug]">) {
   const { slug } = await params;
   const model = await getModelBySlug(slug);
   if (!model) notFound();
+
+  const claims = model.claimedBenchmarks ?? [];
 
   const grouped = new Map<string, typeof model.reports>();
   for (const report of model.reports) {
@@ -66,40 +61,66 @@ export default async function ModelDetailPage({
         </div>
       </header>
 
-      {model.providerBlurb && (
-        <p className="mt-6 max-w-2xl text-lg text-ink">{model.providerBlurb}</p>
-      )}
-
       <section className="mt-10 rounded-2xl bg-surface p-5 sm:p-6">
         <h2 className="font-display text-xs font-black tracking-[0.15em] text-gold">
-          CLAIM — PROVIDER-REPORTED BENCHMARKS
+          CLAIM — WHAT {model.provider.toUpperCase()} SAYS
         </h2>
 
-        {model.status === "released" ? (
-          <>
-            <dl className="mt-5 grid grid-cols-2 gap-6 sm:grid-cols-4">
-              {STATS.map((stat) => (
-                <div key={stat.key}>
-                  <dt className="font-display text-xs font-semibold text-ink-muted">{stat.label}</dt>
-                  <dd className="font-data mt-1 text-2xl text-ink" data-numeric>
-                    {stat.format(model[stat.key])}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-            {model.benchmarkSource && (
-              <p className="font-data mt-4 text-xs text-ink-faint">
-                Source: {model.benchmarkSource}
-                {model.benchmarkUpdatedAt &&
-                  ` · updated ${formatDate(model.benchmarkUpdatedAt)}`}
-              </p>
-            )}
-          </>
+        {model.providerBlurb ? (
+          <p className="mt-4 max-w-2xl text-lg leading-relaxed text-ink">
+            {model.providerBlurb}
+          </p>
         ) : (
-          <p className="font-data mt-4 text-sm text-ink-faint">
-            Not yet released — no benchmark data to report.
+          <p className="mt-4 text-sm text-ink-faint">
+            No summary recorded yet.
           </p>
         )}
+
+        {claims.length > 0 && (
+          <dl className="mt-6 grid grid-cols-2 gap-5 sm:grid-cols-3">
+            {claims.map((c) => (
+              <div key={c.label}>
+                <dt className="font-display text-xs font-semibold text-ink-muted">{c.label}</dt>
+                <dd className="font-data mt-1 text-2xl text-ink" data-numeric>
+                  {c.value}
+                </dd>
+              </div>
+            ))}
+            {model.pricePerMtok && (
+              <div>
+                <dt className="font-display text-xs font-semibold text-ink-muted">Price / Mtok</dt>
+                <dd className="font-data mt-1 text-2xl text-ink" data-numeric>
+                  {formatPrice(model.pricePerMtok)}
+                </dd>
+              </div>
+            )}
+          </dl>
+        )}
+
+        {/* Provenance sits with the claim, not in a footnote — these are the
+            provider's own figures, and the reader should be one click from
+            checking them. */}
+        <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-hairline pt-4">
+          {model.announcementUrl ? (
+            <a
+              href={model.announcementUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-display text-sm font-bold text-gold hover:underline"
+            >
+              Read {model.provider}&rsquo;s announcement ↗
+            </a>
+          ) : (
+            <span className="font-data text-xs text-ink-faint">
+              No announcement link recorded yet.
+            </span>
+          )}
+          {model.summaryIsAutoDrafted && (
+            <span className="font-data text-[11px] text-ink-faint">
+              Summarised automatically from that announcement.
+            </span>
+          )}
+        </div>
       </section>
 
       <Perforation className="my-2" />

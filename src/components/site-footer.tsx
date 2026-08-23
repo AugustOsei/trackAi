@@ -6,7 +6,7 @@ export function SiteFooter() {
           trackai — claim vs. reality, tracked daily.
         </p>
         <p className="font-data">
-          Benchmark data via Artificial Analysis. Reports reviewed before publishing.
+          Claims link to the provider. Reports reviewed before publishing.
         </p>
       </div>
     </footer>

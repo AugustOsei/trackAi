@@ -28,21 +28,21 @@ export default function AboutPage() {
 
         <div className="mt-6">
           <h3 className="font-display text-xs font-black tracking-[0.15em] text-gold">
-            CLAIM — CONFIRMED RELEASES &amp; BENCHMARKS
+            CLAIM — WHAT THE PROVIDER SAYS
           </h3>
           <p className="mt-2 text-ink">
-            Release dates and benchmark scores come from the{" "}
-            <a
-              href="https://artificialanalysis.ai"
-              className="text-gold hover:underline"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Artificial Analysis
-            </a>{" "}
-            data API, synced automatically. This layer is high-confidence and
-            publishes without a human in the loop — it’s the same kind of
-            data you’d find in a provider’s own release notes.
+            For each model we record what the lab itself announced: a short
+            summary of what shipped, whichever benchmark figures that lab chose
+            to publish, and a link straight to its announcement. Nothing here
+            is independently verified — it is the provider&rsquo;s own account
+            of its own product, presented as exactly that.
+          </p>
+          <p className="mt-2 text-ink">
+            Two things worth knowing when you read these numbers. Labs quote
+            the benchmarks that flatter them, so the figures on one model page
+            are rarely directly comparable to another&rsquo;s. And where a
+            summary was drafted automatically from the announcement, the page
+            says so and links the source, so you can check it in one click.
           </p>
         </div>
 

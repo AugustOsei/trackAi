@@ -683,3 +683,68 @@ call that's his to make, not mine.
 These workflows are the one thing here I could **not** test: they need the
 Hetzner instance. Everything else was exercised end to end against the local
 Postgres.
+
+## 2026-08-23 — Dropping Artificial Analysis: a spec correction
+
+Augustine pushed back on AA: *"where does the AA come into this again?"* — the
+site is meant to report what providers announce, with a link out and a key
+summary, set against real user reports.
+
+AA was in the original brief (layer 1 named it explicitly, and it was in the
+suggested stack), so this wasn't invented. But the pushback was right, and I
+should have raised the tension myself instead of just implementing it:
+
+**AA is a third category, and the site only has room for two.** The thesis is
+*claim vs. reality*. AA is neither — it's an independent lab re-running
+standardized tests. Which means the heading I'd shipped, "CLAIM —
+PROVIDER-REPORTED BENCHMARKS", was **flatly wrong**: those numbers were not
+provider-reported. I built a label that misdescribed its own data and didn't
+notice until challenged.
+
+**What replaced it.** The claim layer is now strictly first-party: the lab's
+own summary, the figures that lab chose to publish, and a link to its
+announcement.
+
+**Schema consequence worth recording.** The AA design worked as four fixed
+columns (intelligence, coding, price, speed) because AA measures every model
+the same way. Provider claims can't work that way — Anthropic quotes
+SWE-bench, someone else quotes GPQA or their own eval. So
+`claimedBenchmarks` is a JSONB list of `{label, value}` pairs: whatever that
+lab actually published, in their own naming. Fixed columns would have either
+dropped most of what a lab said or sat permanently empty. Price survived as a
+real column since it's the one figure every lab states identically.
+
+Migration needed two steps: drizzle-kit hits an interactive "is this a rename
+or a drop?" prompt when a generate both adds and removes columns, and there's
+no TTY here. Split into an additive migration then a drop migration, each
+unambiguous. Verified against the live column list rather than trusting the
+"applied successfully" message — which, notably, printed alongside an error.
+
+**The honest trade, stated to Augustine before building:** dropping AA loses
+cross-model comparability entirely. Provider-quoted benchmarks are chosen to
+flatter, and labs use different harnesses, so two model pages aren't really
+comparable. That's a real loss, not a free simplification. It's the right call
+for a claim-vs-reality site rather than a leaderboard — but the About page now
+says so to readers rather than letting them assume the numbers line up.
+
+**Auto-publishing, and what I did about the risk.** Augustine chose to
+auto-publish the provider summaries (no review gate). That means machine-written
+text about a real company going live unchecked, and the failure mode is
+misstating a lab's claim in public. Rather than argue the choice, I built the
+mitigation into the shape of the thing:
+- the prompt is strictly *extractive* — provider's own page only, never a news
+  article or aggregator; only figures printed on that page; never convert,
+  average or infer; return `found: false` rather than guess;
+- anything not confidently sourced is dropped, not published half-empty;
+- `summaryIsAutoDrafted` is stored per row, and the page renders "Summarised
+  automatically from that announcement" next to the source link — so a reader
+  is always one click from checking it.
+
+**Seed honesty, again.** Same principle as the earlier placeholder-benchmark
+decision, and it bit harder this time: fabricating "SWE-bench 77%" and
+rendering it under "WHAT ANTHROPIC SAYS" would be putting invented words in a
+real company's mouth. So exactly one model — Claude Opus 5 — carries real
+figures, web-searched from Anthropic's own announcement (96.0% SWE-bench
+Verified, 79.2% Pro, 43.3% Frontier-Bench). Every other model has an empty
+claim until the workflow sources one. The empty state renders fine, which is
+the point.

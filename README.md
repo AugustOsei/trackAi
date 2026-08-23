@@ -1,8 +1,8 @@
 # trackai
 
-An AI model release tracker that pairs each model's **claim** (provider-reported
-benchmarks) against its **reality** (independently sourced reports of what
-happened when someone actually used it).
+An AI model release tracker that pairs each model's **claim** (what the lab
+itself announced) against its **reality** (reports from people who actually
+used it).
 
 Deploys to `trackai.theaugustdispatch.com`.
 
@@ -10,9 +10,15 @@ Deploys to `trackai.theaugustdispatch.com`.
 
 | | CLAIM | REALITY |
 | --- | --- | --- |
-| Source | Artificial Analysis API | Hacker News + public submissions |
-| Confidence | High — provider-reported | Low — one person's account |
+| Source | The provider's own announcement | Hacker News + public submissions |
+| What it is | What the lab says about its own model, plus the figures it chose to publish, plus a link to the post | What someone found when they actually used it |
 | Publishing | Automatic | **Never** auto-published; every report waits in `/admin` |
+
+There is deliberately no independent-benchmark layer. trackai is not a
+leaderboard — it sets what a lab claims against what users report, and a
+third-party score is neither of those. The trade-off is that claimed figures
+are **not comparable between labs**: each one quotes the benchmarks that
+flatter it. The About page says so to readers.
 
 The ingest endpoint for reports has no way to publish directly — it writes
 `status: 'pending'` unconditionally. Approval only happens through the admin UI.
@@ -22,7 +28,7 @@ The ingest endpoint for reports has no way to publish directly — it writes
 - **Next.js 16** (App Router, Turbopack) on Vercel
 - **Neon** serverless Postgres via **Drizzle ORM** (`postgres-js` driver)
 - **n8n** (self-hosted, Hetzner) for scheduled ingestion
-- **Anthropic API** for summarising reality-check reports
+- **Anthropic API** for reading provider announcements and summarising reports
 
 ## Local development
 
@@ -72,21 +78,23 @@ variables **by name only** — never values. Returns 503 when unhealthy.
 
 ### `POST /api/ingest/models` — CLAIM layer
 
-Bearer auth (`INGEST_API_TOKEN`). Upserts on `slug`, so the daily sync is
-idempotent: re-running refreshes benchmarks instead of duplicating rows. A
-human-written `providerBlurb` is preserved when the sync sends none.
+Bearer auth (`INGEST_API_TOKEN`). Upserts on `slug`, so the sync is
+idempotent. `claimedBenchmarks` is a free-form list rather than fixed columns,
+because every lab quotes a different set of tests. A human-written
+`providerBlurb` or `announcementUrl` is preserved when the sync sends none.
 
 ```bash
 curl -X POST "$BASE/api/ingest/models" \
   -H "Authorization: Bearer $INGEST_API_TOKEN" \
   -H 'content-type: application/json' \
-  -d '{"models":[{"name":"Example 1","slug":"example-1","provider":"OpenAI","status":"released","actualDate":"2026-08-01","intelligenceIndex":61.9}]}'
+  -d '{"models":[{"name":"Example 1","slug":"example-1","provider":"OpenAI","status":"released","actualDate":"2026-08-01","providerBlurb":"What the provider says shipped.","announcementUrl":"https://openai.com/news/example","claimedBenchmarks":[{"label":"SWE-bench Verified","value":"74.9%"}],"summaryIsAutoDrafted":true}]}'
 ```
 
 ### `GET /api/ingest/models`
 
-Bearer auth. Returns `{slug, name, provider}` for every tracked model — this is
-how the Hacker News workflow knows what to search for.
+Bearer auth. Returns `{slug, name, provider, announcementUrl}` for every
+tracked model — the Hacker News workflow uses it to know what to search for,
+and the claim workflow uses `announcementUrl` to skip models already done.
 
 ### `POST /api/ingest/reports` — REALITY layer
 
@@ -120,12 +128,22 @@ curl -X POST "$BASE/api/ingest/reports" \
 ## n8n workflows
 
 Importable JSON lives in `n8n/`. Both read their config from the n8n instance's
-environment (`TRACKAI_BASE_URL`, `TRACKAI_INGEST_TOKEN`,
-`ARTIFICIAL_ANALYSIS_API_KEY`, `ANTHROPIC_API_KEY`).
+environment (`TRACKAI_BASE_URL`, `TRACKAI_INGEST_TOKEN`, `ANTHROPIC_API_KEY`).
 
-**`01-benchmark-sync.json`** — daily. Artificial Analysis → map → `POST
-/api/ingest/models`. Throws rather than writing nothing if the AA response
-shape changes, so a silent format change surfaces as a failed run.
+**`01-provider-claim-sync.json`** — daily. For each model with no recorded
+announcement, Claude uses web search to find the provider's *own* post, then
+records a summary, the figures that post quotes, and the link.
+
+This layer **auto-publishes**, so the prompt is deliberately constrained: use
+only the provider's own page (never a news article or aggregator), quote only
+figures printed there, never convert or infer a number, and set `found: false`
+rather than guess. Anything not confidently sourced is dropped instead of
+published. The page then labels the text as auto-summarised and links the
+source, so a reader can check any claim in one click.
+
+Only models missing an announcement are processed — a launch claim doesn't
+change after the fact, so re-reading every page nightly would just spend
+tokens rewriting identical text.
 
 **`02-reality-check-ingest.json`** — every 6 hours. Tracked models → Hacker
 News *comment* search (comments carry first-hand usage; story titles rarely do)

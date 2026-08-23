@@ -4,13 +4,18 @@
  * Release names and dates for shipped models are real, taken from a public
  * release tracker (llmgateway.io) covering Feb–Aug 2026. They are aggregated
  * third-party data, not verified against each lab's own announcement — good
- * enough to build against, and replaced by the Artificial Analysis sync in
- * production.
+ * enough to build against, and replaced by real provider announcements once
+ * the claim workflow runs.
  *
- * Benchmark numbers here are PLACEHOLDERS. They are labelled as such in
- * `benchmarkSource` rather than attributed to Artificial Analysis, so nothing
- * fabricated is ever shown as sourced. Most models deliberately carry no
- * benchmark at all, which is also the real state before a sync runs.
+ * The CLAIM layer is strictly what each provider published about its own
+ * model. Only Claude Opus 5 carries real, sourced figures here (taken from
+ * Anthropic's own announcement); every other model has no claimed benchmarks
+ * until the n8n claim workflow reads its announcement page. Inventing
+ * benchmark numbers and attributing them to a real company would be worse
+ * than showing none.
+ *
+ * `announcementUrl` is the provider's news index where a per-model post URL
+ * isn't verified — the workflow replaces these with the specific post.
  *
  * Entries with status `announced` / `rumored` are unconfirmed by definition —
  * they exercise the speculative layer of the product and are not sourced
@@ -20,18 +25,26 @@ import { db } from "./index";
 import { models, reports } from "./schema";
 import type { NewModel } from "./schema";
 
-const PLACEHOLDER = "Seed placeholder (pending Artificial Analysis sync)";
-
-function bench(intelligence: string, coding: string, price: string, speed: string) {
-  return {
-    intelligenceIndex: intelligence,
-    codingIndex: coding,
-    pricePerMtok: price,
-    speedTps: speed,
-    benchmarkSource: PLACEHOLDER,
-    benchmarkUpdatedAt: new Date(),
-  };
+/** Provider-published price; the one figure every lab states the same way. */
+function price(perMtok: string) {
+  return { pricePerMtok: perMtok, claimUpdatedAt: new Date() };
 }
+
+/** News index pages, used where the exact per-model post isn't verified. */
+const NEWS = {
+  Anthropic: "https://www.anthropic.com/news",
+  OpenAI: "https://openai.com/news/",
+  "Google DeepMind": "https://blog.google/technology/google-deepmind/",
+  DeepSeek: "https://api-docs.deepseek.com/news/",
+  Alibaba: "https://qwenlm.github.io/blog/",
+  "Moonshot AI": "https://moonshotai.github.io/",
+  "Z.AI": "https://z.ai/blog",
+  Meta: "https://ai.meta.com/blog/",
+  xAI: "https://x.ai/news",
+  MiniMax: "https://www.minimax.io/news",
+  ByteDance: "https://seed.bytedance.com/",
+  "Sakana AI": "https://sakana.ai/blog/",
+} as const;
 
 const SEED: NewModel[] = [
   // ── February 2026 ────────────────────────────────────────────────────────
@@ -39,25 +52,28 @@ const SEED: NewModel[] = [
     name: "Claude Opus 4.6",
     slug: "claude-opus-4-6",
     provider: "Anthropic",
+    announcementUrl: NEWS["Anthropic"],
     status: "released",
     actualDate: "2026-02-05",
     providerBlurb: "Reasoning-focused flagship aimed at long-running agent workflows.",
-    ...bench("70.1", "76.9", "15.000", "58.0"),
+    ...price("15.000"),
   },
   // Two labs shipping the same day — different providers, one date marker.
   {
     name: "GLM-5",
     slug: "glm-5",
     provider: "Z.AI",
+    announcementUrl: NEWS["Z.AI"],
     status: "released",
     actualDate: "2026-02-15",
     providerBlurb: "Open-weights flagship from Z.AI, strong on tool use for its size.",
-    ...bench("64.8", "69.2", "0.600", "96.0"),
+    ...price("0.600"),
   },
   {
     name: "MiniMax M2.5",
     slug: "minimax-m2-5",
     provider: "MiniMax",
+    announcementUrl: NEWS["MiniMax"],
     status: "released",
     actualDate: "2026-02-15",
     providerBlurb: "Long-context model with an emphasis on cost per token.",
@@ -66,6 +82,7 @@ const SEED: NewModel[] = [
     name: "Qwen3.5 397B A17B",
     slug: "qwen3-5-397b-a17b",
     provider: "Alibaba",
+    announcementUrl: NEWS["Alibaba"],
     status: "released",
     actualDate: "2026-02-16",
     providerBlurb: "Sparse mixture-of-experts release in the Qwen3.5 line.",
@@ -74,15 +91,17 @@ const SEED: NewModel[] = [
     name: "Gemini 3.1 Pro",
     slug: "gemini-3-1-pro",
     provider: "Google DeepMind",
+    announcementUrl: NEWS["Google DeepMind"],
     status: "released",
     actualDate: "2026-02-19",
     providerBlurb: "Native multimodal model with a very large context window.",
-    ...bench("68.5", "71.9", "7.000", "110.0"),
+    ...price("7.000"),
   },
   {
     name: "GPT-5.3 Codex",
     slug: "gpt-5-3-codex",
     provider: "OpenAI",
+    announcementUrl: NEWS["OpenAI"],
     status: "released",
     actualDate: "2026-02-24",
     providerBlurb: "Code-specialised variant tuned for repository-scale edits.",
@@ -93,16 +112,18 @@ const SEED: NewModel[] = [
     name: "GPT-5.4",
     slug: "gpt-5-4",
     provider: "OpenAI",
+    announcementUrl: NEWS["OpenAI"],
     status: "released",
     actualDate: "2026-03-06",
     providerBlurb: "General-purpose update with improved tool-use reliability.",
-    ...bench("69.8", "75.1", "10.000", "84.0"),
+    ...price("10.000"),
   },
   // Same provider, same day — a paired small/large launch.
   {
     name: "GPT-5.4 Mini",
     slug: "gpt-5-4-mini",
     provider: "OpenAI",
+    announcementUrl: NEWS["OpenAI"],
     status: "released",
     actualDate: "2026-03-17",
     providerBlurb: "Smaller, cheaper sibling to GPT-5.4.",
@@ -111,6 +132,7 @@ const SEED: NewModel[] = [
     name: "GPT-5.4 Nano",
     slug: "gpt-5-4-nano",
     provider: "OpenAI",
+    announcementUrl: NEWS["OpenAI"],
     status: "released",
     actualDate: "2026-03-17",
     providerBlurb: "Smallest GPT-5.4 tier, aimed at high-volume classification.",
@@ -119,6 +141,7 @@ const SEED: NewModel[] = [
     name: "MiniMax M2.7",
     slug: "minimax-m2-7",
     provider: "MiniMax",
+    announcementUrl: NEWS["MiniMax"],
     status: "released",
     actualDate: "2026-03-18",
     providerBlurb: "Incremental update to the M2 line.",
@@ -137,6 +160,7 @@ const SEED: NewModel[] = [
     name: "GLM-5.1",
     slug: "glm-5-1",
     provider: "Z.AI",
+    announcementUrl: NEWS["Z.AI"],
     status: "released",
     actualDate: "2026-04-07",
     providerBlurb: "Point update to GLM-5 with a longer context window.",
@@ -145,6 +169,7 @@ const SEED: NewModel[] = [
     name: "Seedance 2.0",
     slug: "seedance-2-0",
     provider: "ByteDance",
+    announcementUrl: NEWS["ByteDance"],
     status: "released",
     actualDate: "2026-04-14",
     providerBlurb: "Video generation model from ByteDance's Seed group.",
@@ -153,6 +178,7 @@ const SEED: NewModel[] = [
     name: "Kimi K2.6",
     slug: "kimi-k2-6",
     provider: "Moonshot AI",
+    announcementUrl: NEWS["Moonshot AI"],
     status: "released",
     actualDate: "2026-04-20",
     providerBlurb: "Agentic-focused release in the Kimi K2 line.",
@@ -162,6 +188,7 @@ const SEED: NewModel[] = [
     name: "GPT-5.5",
     slug: "gpt-5-5",
     provider: "OpenAI",
+    announcementUrl: NEWS["OpenAI"],
     status: "released",
     actualDate: "2026-04-23",
     providerBlurb: "Flagship update with a substantially larger context window.",
@@ -170,6 +197,7 @@ const SEED: NewModel[] = [
     name: "GPT-5.5 Pro",
     slug: "gpt-5-5-pro",
     provider: "OpenAI",
+    announcementUrl: NEWS["OpenAI"],
     status: "released",
     actualDate: "2026-04-23",
     providerBlurb: "Extended-reasoning tier of GPT-5.5.",
@@ -178,10 +206,11 @@ const SEED: NewModel[] = [
     name: "DeepSeek V4 Pro",
     slug: "deepseek-v4-pro",
     provider: "DeepSeek",
+    announcementUrl: NEWS["DeepSeek"],
     status: "released",
     actualDate: "2026-04-24",
     providerBlurb: "Open-weights reasoning model at an aggressive price point.",
-    ...bench("67.2", "73.4", "0.900", "72.0"),
+    ...price("0.900"),
   },
 
   // ── May–June 2026 ────────────────────────────────────────────────────────
@@ -189,6 +218,7 @@ const SEED: NewModel[] = [
     name: "Claude Opus 4.8",
     slug: "claude-opus-4-8",
     provider: "Anthropic",
+    announcementUrl: NEWS["Anthropic"],
     status: "released",
     actualDate: "2026-05-28",
     providerBlurb: "Further reasoning gains over Opus 4.6 on long-horizon tasks.",
@@ -197,6 +227,7 @@ const SEED: NewModel[] = [
     name: "MiniMax M3",
     slug: "minimax-m3",
     provider: "MiniMax",
+    announcementUrl: NEWS["MiniMax"],
     status: "released",
     actualDate: "2026-06-01",
     providerBlurb: "New generation of the MiniMax line.",
@@ -205,6 +236,7 @@ const SEED: NewModel[] = [
     name: "GLM-5.2",
     slug: "glm-5-2",
     provider: "Z.AI",
+    announcementUrl: NEWS["Z.AI"],
     status: "released",
     actualDate: "2026-06-13",
     providerBlurb: "Second point release in the GLM-5 series.",
@@ -213,6 +245,7 @@ const SEED: NewModel[] = [
     name: "Fugu Ultra",
     slug: "fugu-ultra",
     provider: "Sakana AI",
+    announcementUrl: NEWS["Sakana AI"],
     status: "released",
     actualDate: "2026-06-23",
     providerBlurb: "Sakana AI's frontier model, developed in Tokyo.",
@@ -221,10 +254,11 @@ const SEED: NewModel[] = [
     name: "Claude Sonnet 5",
     slug: "claude-sonnet-5",
     provider: "Anthropic",
+    announcementUrl: NEWS["Anthropic"],
     status: "released",
     actualDate: "2026-06-30",
     providerBlurb: "Mid-tier sibling to Opus, tuned for latency-sensitive production work.",
-    ...bench("66.4", "72.8", "3.000", "138.0"),
+    ...price("3.000"),
   },
 
   // ── July 2026 ────────────────────────────────────────────────────────────
@@ -232,6 +266,7 @@ const SEED: NewModel[] = [
     name: "Grok 4.5",
     slug: "grok-4-5",
     provider: "xAI",
+    announcementUrl: NEWS["xAI"],
     status: "released",
     actualDate: "2026-07-08",
     providerBlurb: "Reasoning update to the Grok 4 line.",
@@ -241,6 +276,7 @@ const SEED: NewModel[] = [
     name: "GPT-5.6 Luna",
     slug: "gpt-5-6-luna",
     provider: "OpenAI",
+    announcementUrl: NEWS["OpenAI"],
     status: "released",
     actualDate: "2026-07-09",
     providerBlurb: "Conversational tier of the GPT-5.6 family.",
@@ -249,6 +285,7 @@ const SEED: NewModel[] = [
     name: "GPT-5.6 Terra",
     slug: "gpt-5-6-terra",
     provider: "OpenAI",
+    announcementUrl: NEWS["OpenAI"],
     status: "released",
     actualDate: "2026-07-09",
     providerBlurb: "Agentic tier of the GPT-5.6 family.",
@@ -257,6 +294,7 @@ const SEED: NewModel[] = [
     name: "GPT-5.6 Sol",
     slug: "gpt-5-6-sol",
     provider: "OpenAI",
+    announcementUrl: NEWS["OpenAI"],
     status: "released",
     actualDate: "2026-07-09",
     providerBlurb: "Reasoning tier of the GPT-5.6 family.",
@@ -265,20 +303,28 @@ const SEED: NewModel[] = [
     name: "Kimi K3",
     slug: "kimi-k3",
     provider: "Moonshot AI",
+    announcementUrl: NEWS["Moonshot AI"],
     status: "released",
     actualDate: "2026-07-16",
     providerBlurb: "New generation of Moonshot's open-weights line.",
-    ...bench("65.9", "70.3", "0.500", "104.0"),
+    ...price("0.500"),
   },
   {
     name: "Claude Opus 5",
     slug: "claude-opus-5",
     provider: "Anthropic",
+    // The one entry with a verified per-model post and real published figures.
+    announcementUrl: "https://www.anthropic.com/news/claude-opus-5",
+    claimedBenchmarks: [
+      { label: "SWE-bench Verified", value: "96.0%" },
+      { label: "SWE-bench Pro", value: "79.2%" },
+      { label: "Frontier-Bench v0.1", value: "43.3%" },
+    ],
     status: "released",
     actualDate: "2026-07-24",
     providerBlurb:
       "Anthropic's flagship model, positioned for long-horizon agentic work and coding.",
-    ...bench("71.2", "78.4", "15.000", "62.0"),
+    ...price("15.000"),
   },
 
   // ── August 2026 ──────────────────────────────────────────────────────────
@@ -286,6 +332,7 @@ const SEED: NewModel[] = [
     name: "Qwen3.8 Max",
     slug: "qwen3-8-max",
     provider: "Alibaba",
+    announcementUrl: NEWS["Alibaba"],
     status: "released",
     actualDate: "2026-08-02",
     providerBlurb: "Largest tier of the Qwen3.8 series.",
@@ -295,6 +342,7 @@ const SEED: NewModel[] = [
     name: "Grok 4.6",
     slug: "grok-4-6",
     provider: "xAI",
+    announcementUrl: NEWS["xAI"],
     status: "released",
     actualDate: "2026-08-06",
     providerBlurb: "Latest Grok 4 point release.",
@@ -303,6 +351,7 @@ const SEED: NewModel[] = [
     name: "Muse Spark 1.2",
     slug: "muse-spark-1-2",
     provider: "Meta",
+    announcementUrl: NEWS["Meta"],
     status: "released",
     actualDate: "2026-08-06",
     providerBlurb: "Meta's creative generation model.",
@@ -311,15 +360,17 @@ const SEED: NewModel[] = [
     name: "Gemini 3.7 Flash",
     slug: "gemini-3-7-flash",
     provider: "Google DeepMind",
+    announcementUrl: NEWS["Google DeepMind"],
     status: "released",
     actualDate: "2026-08-13",
     providerBlurb: "Cost-optimised Gemini tier with the full context window.",
-    ...bench("61.0", "64.2", "0.400", "220.0"),
+    ...price("0.400"),
   },
   {
     name: "GLM-5.3",
     slug: "glm-5-3",
     provider: "Z.AI",
+    announcementUrl: NEWS["Z.AI"],
     status: "released",
     actualDate: "2026-08-14",
     providerBlurb: "Third point release in the GLM-5 series.",
@@ -328,6 +379,7 @@ const SEED: NewModel[] = [
     name: "GLM-5.2 Turbo",
     slug: "glm-5-2-turbo",
     provider: "Z.AI",
+    announcementUrl: NEWS["Z.AI"],
     status: "released",
     actualDate: "2026-08-17",
     providerBlurb: "Throughput-optimised variant of GLM-5.2.",
@@ -338,6 +390,7 @@ const SEED: NewModel[] = [
     name: "Qwen 4",
     slug: "qwen-4",
     provider: "Alibaba",
+    announcementUrl: NEWS["Alibaba"],
     status: "announced",
     predictedDate: "2026-09-30",
     providerBlurb: "Next Qwen generation. Timing unconfirmed.",
@@ -346,6 +399,7 @@ const SEED: NewModel[] = [
     name: "Kimi K3.1",
     slug: "kimi-k3-1",
     provider: "Moonshot AI",
+    announcementUrl: NEWS["Moonshot AI"],
     status: "rumored",
     predictedDate: "2026-10-15",
     providerBlurb: "Point update to Kimi K3. Rumored only.",
@@ -354,6 +408,7 @@ const SEED: NewModel[] = [
     name: "GPT-6",
     slug: "gpt-6",
     provider: "OpenAI",
+    announcementUrl: NEWS["OpenAI"],
     status: "rumored",
     predictedDate: "2026-11-15",
     providerBlurb: "Next major GPT generation. Rumored only, no confirmed date.",
@@ -362,6 +417,7 @@ const SEED: NewModel[] = [
     name: "Claude Opus 6",
     slug: "claude-opus-6",
     provider: "Anthropic",
+    announcementUrl: NEWS["Anthropic"],
     status: "rumored",
     predictedDate: "2026-12-01",
     providerBlurb: "Next Opus generation. Rumored only.",

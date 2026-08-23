@@ -6,7 +6,7 @@ import { ProviderBadge } from "@/components/provider-badge";
 import { StatusDot } from "@/components/status-dot";
 import { NewBadge } from "@/components/new-badge";
 import { TaskTag } from "@/components/task-tag";
-import { formatDate, formatIndex, formatPrice, isRecent } from "@/lib/format";
+import { formatDate, formatPrice, isRecent } from "@/lib/format";
 import type { Model } from "@/db/schema";
 
 type ReportPreview = { id: number; taskCategory: string; takeaway: string };
@@ -45,6 +45,7 @@ export function MilestoneEntry({
   const [expanded, setExpanded] = useState(false);
   const reportCount = model.reports.length;
   const isNew = model.status === "released" && isRecent(date);
+  const claims = model.claimedBenchmarks ?? [];
   const delay = Math.min(index * 70, 500);
   const side = onLeft ? "left" : "right";
 
@@ -125,14 +126,24 @@ export function MilestoneEntry({
                 : `expected ${formatDate(date)}`}
             </p>
 
-            {model.status === "released" && (
-              <p className="font-data text-xs text-ink-muted" data-numeric>
-                <span className="text-ink">{formatIndex(model.intelligenceIndex)}</span>{" "}
-                intelligence · {formatPrice(model.pricePerMtok)}/Mtok
+            {model.providerBlurb && <p className="text-sm text-ink">{model.providerBlurb}</p>}
+
+            {/* Show whichever figures this lab actually published — the set
+                differs per provider, so there's no fixed row to render. */}
+            {(claims.length > 0 || model.pricePerMtok) && (
+              <p className={`font-data flex flex-wrap gap-x-3 gap-y-1 text-xs text-ink-muted ${onLeft ? "sm:justify-end" : ""}`} data-numeric>
+                {claims.slice(0, 2).map((c) => (
+                  <span key={c.label}>
+                    {c.label} <span className="text-ink">{c.value}</span>
+                  </span>
+                ))}
+                {model.pricePerMtok && (
+                  <span>
+                    <span className="text-ink">{formatPrice(model.pricePerMtok)}</span>/Mtok
+                  </span>
+                )}
               </p>
             )}
-
-            {model.providerBlurb && <p className="text-sm text-ink">{model.providerBlurb}</p>}
 
             {reportCount > 0 ? (
               <ul className="space-y-2">

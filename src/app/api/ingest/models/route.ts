@@ -7,12 +7,15 @@ import { isAuthorizedIngest, unauthorized } from "@/lib/ingest-auth";
 export const dynamic = "force-dynamic";
 
 /**
- * Benchmark sync target for the n8n Artificial Analysis workflow.
+ * CLAIM-layer sync target for the n8n provider-announcement workflow.
  *
- * This is the CLAIM layer: high-confidence, provider-reported data that
- * publishes without review. It upserts on `slug`, so the daily sync is
- * idempotent — re-running it refreshes benchmarks rather than duplicating
- * models.
+ * Everything written here is what a provider said about its own model —
+ * a summary of its announcement, the figures that announcement quoted, and
+ * a link back to it. This layer publishes without review, so the workflow
+ * is constrained to be extractive: it may only restate what the page says.
+ *
+ * Upserts on `slug`, so re-running the sync refreshes a claim rather than
+ * duplicating the model.
  */
 const modelSchema = z.object({
   name: z.string().trim().min(1).max(200),
@@ -27,11 +30,19 @@ const modelSchema = z.object({
   predictedDate: z.string().date().nullish(),
   actualDate: z.string().date().nullish(),
   providerBlurb: z.string().trim().max(2000).nullish(),
-  intelligenceIndex: z.number().nullish(),
-  codingIndex: z.number().nullish(),
+  announcementUrl: z.string().trim().url().max(2000).nullish(),
+  // Free-form because every lab quotes a different set of tests.
+  claimedBenchmarks: z
+    .array(
+      z.object({
+        label: z.string().trim().min(1).max(120),
+        value: z.string().trim().min(1).max(60),
+      }),
+    )
+    .max(12)
+    .nullish(),
   pricePerMtok: z.number().nullish(),
-  speedTps: z.number().nullish(),
-  benchmarkSource: z.string().trim().max(120).nullish(),
+  summaryIsAutoDrafted: z.boolean().default(false),
 });
 
 const payloadSchema = z.object({
@@ -49,7 +60,14 @@ export async function GET(request: Request) {
   if (!isAuthorizedIngest(request)) return unauthorized();
 
   const rows = await db
-    .select({ slug: models.slug, name: models.name, provider: models.provider })
+    .select({
+      slug: models.slug,
+      name: models.name,
+      provider: models.provider,
+      // Lets the claim workflow skip models whose announcement is already
+      // recorded, instead of re-researching every model every night.
+      announcementUrl: models.announcementUrl,
+    })
     .from(models)
     .orderBy(desc(models.createdAt));
 
@@ -83,12 +101,11 @@ export async function POST(request: Request) {
     predictedDate: m.predictedDate ?? null,
     actualDate: m.actualDate ?? null,
     providerBlurb: m.providerBlurb ?? null,
-    intelligenceIndex: num(m.intelligenceIndex),
-    codingIndex: num(m.codingIndex),
+    announcementUrl: m.announcementUrl ?? null,
+    claimedBenchmarks: m.claimedBenchmarks ?? [],
     pricePerMtok: num(m.pricePerMtok),
-    speedTps: num(m.speedTps),
-    benchmarkSource: m.benchmarkSource ?? null,
-    benchmarkUpdatedAt: now,
+    summaryIsAutoDrafted: m.summaryIsAutoDrafted,
+    claimUpdatedAt: now,
   }));
 
   try {
@@ -105,12 +122,11 @@ export async function POST(request: Request) {
           actualDate: sql`excluded.actual_date`,
           // Keep an existing human-written blurb if the sync sends nothing.
           providerBlurb: sql`coalesce(excluded.provider_blurb, ${models.providerBlurb})`,
-          intelligenceIndex: sql`excluded.intelligence_index`,
-          codingIndex: sql`excluded.coding_index`,
+          announcementUrl: sql`coalesce(excluded.announcement_url, ${models.announcementUrl})`,
+          claimedBenchmarks: sql`excluded.claimed_benchmarks`,
           pricePerMtok: sql`excluded.price_per_mtok`,
-          speedTps: sql`excluded.speed_tps`,
-          benchmarkSource: sql`excluded.benchmark_source`,
-          benchmarkUpdatedAt: sql`excluded.benchmark_updated_at`,
+          summaryIsAutoDrafted: sql`excluded.summary_is_auto_drafted`,
+          claimUpdatedAt: sql`excluded.claim_updated_at`,
         },
       })
       .returning({ id: models.id, slug: models.slug });
