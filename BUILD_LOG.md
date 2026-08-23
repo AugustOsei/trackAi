@@ -607,3 +607,79 @@ surfacing a layout problem that invented three-provider data never would
 have.
 
 `npm run build` clean.
+
+## 2026-08-23 — Backend: migrations, ingest API, abuse protection
+
+Front end paused; wiring the parts that have to exist before n8n can do
+anything. Three real gaps were open: no migrations (only `db:push`), no
+endpoint for n8n to call, and a **public form with zero abuse protection** —
+anyone could have flooded the review queue.
+
+**Changed from the plan: n8n posts to an API route, not straight to Neon.**
+The original plan had n8n's Postgres node writing directly. Reasons for
+switching, agreed with Augustine before building:
+- Validation and schema live in one place (Zod + Drizzle) instead of raw
+  INSERT statements duplicated inside n8n nodes, where a schema change
+  breaks the workflow silently.
+- n8n only holds an API token, never database credentials — smaller blast
+  radius if the VM is compromised.
+- The insert is milliseconds, nowhere near Vercel's 10s function limit, so
+  the original performance argument for going direct doesn't apply.
+
+**Migrations.** Moved off `db:push` to generated SQL in `drizzle/`. Validated
+properly rather than assuming: dropped the local database, recreated it, and
+ran `db:migrate` from empty — three tables, correct enums and indexes. A
+migration that has only ever been "pushed" isn't a migration.
+
+**Ingest API.** Two bearer-authed routes plus a health check. Design points:
+- `POST /api/ingest/models` upserts on slug so the daily sync is idempotent,
+  and `coalesce`s the blurb so a human-written description isn't wiped by a
+  sync that sends none. Verified: two posts of the same slug → one row,
+  benchmark updated, blurb preserved.
+- `POST /api/ingest/reports` writes `status: 'pending'` unconditionally.
+  There is deliberately no code path from this route to a published report —
+  the review gate is structural, not a flag someone can pass.
+- Reports key on model *slug*, not id, so n8n never learns database ids.
+  Unknown slugs are skipped and returned rather than failing the batch, so
+  one bad row doesn't lose a whole run.
+- Token comparison is `timingSafeEqual` — a length-or-content shortcut leaks
+  the token to a patient attacker.
+- `/api/health` reports missing env vars **by name only**, never values, so
+  it's safe to leave public.
+
+**Abuse protection**, all three layers tested through the real server action
+rather than by reading the code:
+- Honeypot: a bot filling the hidden field gets a *success* response and no
+  write — confirmed 0 rows written while the page showed "received". Giving
+  a bot an error teaches it to retry differently.
+- Rate limit: 5/hour per IP. Confirmed the 6th submission is refused *and*
+  writes nothing.
+- IPs are stored as a salted SHA-256 hash, never the address. Confirmed the
+  column holds a digest. Enough to count repeats, useless if leaked.
+
+**A guard that proved itself by getting in the way**: I tried to unit-test
+the rate limiter with `tsx` and it threw — `server-only` refused the import
+outside a server context. That's exactly its job, so rather than weaken it
+I tested through the running app instead, which is the better test anyway.
+
+**Verified rather than assumed**, since both were flagged as unknowns in the
+original brief: the HN Algolia API still works exactly as the brief assumed
+(no auth, documented fields). Switched the workflow from story search to
+**comment** search — story titles are announcements, comments are where "I
+tried X and it did Y" actually lives, which is the entire point of the
+reality layer.
+
+**n8n workflows** written to `n8n/*.json`. The summarisation step uses a
+forced **strict tool call** rather than asking for JSON in prose, so the
+response is schema-valid by construction. The prompt requires paraphrase,
+explicitly forbids reproducing the comment's wording (per the brief), and
+asks the model to mark anything that isn't a first-hand account as unusable.
+Capped at 25 candidates per run so one busy news cycle can't run up a bill.
+
+Model is `claude-opus-5` at `effort: low`. Flagged to Augustine that Haiku
+4.5 would be much cheaper for a classification task at this volume — a cost
+call that's his to make, not mine.
+
+These workflows are the one thing here I could **not** test: they need the
+Hetzner instance. Everything else was exercised end to end against the local
+Postgres.

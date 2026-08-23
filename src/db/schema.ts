@@ -85,6 +85,22 @@ export const reports = pgTable(
   ],
 );
 
+/**
+ * Abuse throttling for the public submit form. Stores a salted hash of the
+ * client IP, never the address itself — enough to count repeat submissions
+ * in a window, not enough to identify anyone or be useful if leaked.
+ * Rows are pruned opportunistically on write.
+ */
+export const submissionAttempts = pgTable(
+  "submission_attempts",
+  {
+    id: serial("id").primaryKey(),
+    ipHash: varchar("ip_hash", { length: 64 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("submission_attempts_ip_time_idx").on(table.ipHash, table.createdAt)],
+);
+
 export const modelsRelations = relations(models, ({ many }) => ({
   reports: many(reports),
 }));

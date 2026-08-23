@@ -1,0 +1,71 @@
+{
+  "name": "trackai — benchmark sync (CLAIM layer)",
+  "settings": { "executionOrder": "v1" },
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "days", "triggerAtHour": 6, "triggerAtMinute": 0 }]
+        }
+      },
+      "id": "schedule",
+      "name": "Daily 06:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-160, 0]
+    },
+    {
+      "parameters": {
+        "url": "https://artificialanalysis.ai/api/v2/data/llms/models",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-api-key", "value": "={{ $env.ARTIFICIAL_ANALYSIS_API_KEY }}" }
+          ]
+        },
+        "options": { "timeout": 30000 }
+      },
+      "id": "fetch-aa",
+      "name": "Artificial Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [60, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Map the Artificial Analysis payload onto trackai's model shape.\n// AA has changed field names before, so read defensively and skip anything\n// we can't confidently identify rather than writing junk rows.\nconst payload = $input.first().json;\nconst rows = payload.data ?? payload.models ?? payload ?? [];\n\nconst slugify = (s) =>\n  String(s).toLowerCase().trim()\n    .replace(/[^a-z0-9]+/g, '-')\n    .replace(/^-+|-+$/g, '')\n    .slice(0, 200);\n\nconst num = (v) => (v === null || v === undefined || v === '' || Number.isNaN(Number(v)) ? null : Number(v));\n\nconst models = [];\nfor (const r of Array.isArray(rows) ? rows : []) {\n  const name = r.name ?? r.model_name ?? r.slug;\n  if (!name) continue;\n\n  const provider = r.model_creator?.name ?? r.creator?.name ?? r.creator ?? r.provider;\n  if (!provider) continue;\n\n  const released = r.release_date ?? r.released_at ?? null;\n  const ev = r.evaluations ?? r.metrics ?? r;\n\n  models.push({\n    name: String(name).slice(0, 200),\n    slug: slugify(r.slug ?? name),\n    provider: String(provider).slice(0, 120),\n    status: 'released',\n    actualDate: released ? String(released).slice(0, 10) : null,\n    intelligenceIndex: num(ev.artificial_analysis_intelligence_index ?? ev.intelligence_index),\n    codingIndex: num(ev.artificial_analysis_coding_index ?? ev.coding_index),\n    pricePerMtok: num(r.pricing?.price_1m_blended_3_to_1 ?? r.pricing?.price_1m_output_tokens),\n    speedTps: num(r.median_output_tokens_per_second ?? r.output_tokens_per_second),\n    benchmarkSource: 'Artificial Analysis',\n  });\n}\n\nif (!models.length) {\n  throw new Error('No models parsed from Artificial Analysis — response shape may have changed. Inspect the previous node output before letting this run again.');\n}\n\nreturn [{ json: { models } }];"
+      },
+      "id": "map-models",
+      "name": "Map to trackai schema",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [280, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.TRACKAI_BASE_URL }}/api/ingest/models",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.TRACKAI_INGEST_TOKEN }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ models: $json.models }) }}",
+        "options": { "timeout": 30000 }
+      },
+      "id": "post-models",
+      "name": "POST /api/ingest/models",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 0]
+    }
+  ],
+  "connections": {
+    "Daily 06:00": { "main": [[{ "node": "Artificial Analysis", "type": "main", "index": 0 }]] },
+    "Artificial Analysis": { "main": [[{ "node": "Map to trackai schema", "type": "main", "index": 0 }]] },
+    "Map to trackai schema": { "main": [[{ "node": "POST /api/ingest/models", "type": "main", "index": 0 }]] }
+  }
+}

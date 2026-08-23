@@ -1,6 +1,6 @@
 "use server";
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
@@ -8,6 +8,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import { reports } from "@/db/schema";
 import { verifyPassword } from "@/lib/password";
+import { checkAndRecordSubmission, clientIpFrom } from "@/lib/rate-limit";
 import {
   createSessionCookieValue,
   SESSION_COOKIE_NAME,
@@ -30,6 +31,13 @@ export async function submitReport(
   _prevState: SubmitReportState,
   formData: FormData,
 ): Promise<SubmitReportState> {
+  // Honeypot: a field hidden from people but not from naive bots. Anything
+  // that fills it gets a success response without a write, so the bot has no
+  // signal that it was rejected.
+  if (typeof formData.get("website") === "string" && formData.get("website") !== "") {
+    return { success: true };
+  }
+
   const parsed = submitSchema.safeParse({
     modelId: formData.get("modelId"),
     taskCategory: formData.get("taskCategory"),
@@ -39,6 +47,13 @@ export async function submitReport(
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Check the form and try again." };
+  }
+
+  const limit = await checkAndRecordSubmission(clientIpFrom(await headers()));
+  if (!limit.allowed) {
+    return {
+      error: `That's a lot of reports at once. Try again in about ${limit.retryAfterMinutes} minutes.`,
+    };
   }
 
   try {

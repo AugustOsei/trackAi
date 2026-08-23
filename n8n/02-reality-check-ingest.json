@@ -1,0 +1,135 @@
+{
+  "name": "trackai — reality check ingest (REALITY layer)",
+  "settings": { "executionOrder": "v1" },
+  "nodes": [
+    {
+      "parameters": {
+        "rule": { "interval": [{ "field": "hours", "hoursInterval": 6 }] }
+      },
+      "id": "schedule",
+      "name": "Every 6 hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-380, 0]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.TRACKAI_BASE_URL }}/api/ingest/models",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.TRACKAI_INGEST_TOKEN }}" }
+          ]
+        },
+        "options": { "timeout": 30000 }
+      },
+      "id": "get-models",
+      "name": "GET tracked models",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-160, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Only search for models distinctive enough to give clean HN hits.\n// A two-character name would match everything and poison the queue.\nconst models = $input.first().json.models ?? [];\nreturn models\n  .filter((m) => m.name && m.name.length >= 4)\n  .slice(0, 40)\n  .map((m) => ({ json: { slug: m.slug, name: m.name, provider: m.provider } }));"
+      },
+      "id": "fan-out",
+      "name": "One item per model",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [60, 0]
+    },
+    {
+      "parameters": {
+        "url": "=https://hn.algolia.com/api/v1/search_by_date",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "query", "value": "={{ '\"' + $json.name + '\"' }}" },
+            { "name": "tags", "value": "comment" },
+            { "name": "hitsPerPage", "value": "20" }
+          ]
+        },
+        "options": { "timeout": 30000 }
+      },
+      "id": "hn-search",
+      "name": "HN comment search",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [280, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Flatten every model's hits into one candidate list.\n// $('One item per model').all()[i] keeps each response paired with the model\n// it was searched for — the HTTP node replaces item data otherwise.\nconst sources = $('One item per model').all();\nconst decode = (s) =>\n  String(s || '')\n    .replace(/<[^>]*>/g, ' ')\n    .replace(/&#x2F;/g, '/')\n    .replace(/&#x27;/g, \"'\")\n    .replace(/&quot;/g, '\"')\n    .replace(/&amp;/g, '&')\n    .replace(/&lt;/g, '<')\n    .replace(/&gt;/g, '>')\n    .replace(/\\s+/g, ' ')\n    .trim();\n\nconst cutoff = Date.now() - 1000 * 60 * 60 * 24 * 30; // last 30 days only\nconst out = [];\nconst seen = new Set();\n\nconst items = $input.all();\nfor (let i = 0; i < items.length; i++) {\n  const model = sources[i]?.json;\n  if (!model) continue;\n  for (const hit of items[i].json.hits ?? []) {\n    const text = decode(hit.comment_text);\n    // Too short to contain a usable account of actually using the thing.\n    if (text.length < 180) continue;\n    if (new Date(hit.created_at).getTime() < cutoff) continue;\n    const url = `https://news.ycombinator.com/item?id=${hit.objectID}`;\n    if (seen.has(url)) continue;\n    seen.add(url);\n    out.push({ json: { modelSlug: model.slug, modelName: model.name, sourceUrl: url, text: text.slice(0, 4000) } });\n  }\n}\n\n// Cap per run so one busy window can't produce a giant Anthropic bill.\nreturn out.slice(0, 25);"
+      },
+      "id": "candidates",
+      "name": "Build candidates",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-api-key", "value": "={{ $env.ANTHROPIC_API_KEY }}" },
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  model: 'claude-opus-5',\n  max_tokens: 1024,\n  output_config: { effort: 'low' },\n  system: \"You classify Hacker News comments for trackai, a tracker that pairs AI model benchmark claims against real-world reports.\\n\\nYou will be given one comment that mentions a named model. Decide whether it is a FIRST-HAND account of someone actually using that model on a real task.\\n\\nMark usable=false when the comment is: speculation, pricing or business chat, a complaint about the company rather than the model, a benchmark score quoted secondhand, or only a passing mention.\\n\\nIf usable, write a one-sentence takeaway IN YOUR OWN WORDS describing what the person tried and what happened. Never quote or reproduce the comment's wording — paraphrase the substance only. Be specific and neutral. Include the limitation or failure if there was one; do not make it sound more positive than it was.\",\n  tools: [{\n    name: 'record_reality_check',\n    description: 'Record whether this comment is a usable first-hand report, and if so summarise it.',\n    strict: true,\n    input_schema: {\n      type: 'object',\n      properties: {\n        usable: { type: 'boolean', description: 'True only for a first-hand account of using the model on a real task.' },\n        taskCategory: { type: 'string', enum: ['coding','agentic','vision','writing','other'] },\n        takeaway: { type: 'string', description: 'One sentence, 10-400 chars, paraphrased. Empty string when usable is false.' }\n      },\n      required: ['usable','taskCategory','takeaway'],\n      additionalProperties: false\n    }\n  }],\n  tool_choice: { type: 'tool', name: 'record_reality_check' },\n  messages: [{ role: 'user', content: 'Model being discussed: ' + $json.modelName + '\\n\\nComment:\\n' + $json.text }]\n}) }}",
+        "options": { "timeout": 120000 }
+      },
+      "id": "summarize",
+      "name": "Claude summarize",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pull the forced tool call out of each response and keep only the usable\n// ones. Anything malformed is dropped rather than guessed at — a bad row\n// here becomes a bad card in the review queue.\nconst candidates = $('Build candidates').all();\nconst reports = [];\n\nconst items = $input.all();\nfor (let i = 0; i < items.length; i++) {\n  const src = candidates[i]?.json;\n  if (!src) continue;\n\n  const block = (items[i].json.content ?? []).find((b) => b.type === 'tool_use');\n  const result = block?.input;\n  if (!result || result.usable !== true) continue;\n\n  const takeaway = String(result.takeaway ?? '').trim();\n  if (takeaway.length < 10) continue;\n\n  reports.push({\n    modelSlug: src.modelSlug,\n    taskCategory: result.taskCategory,\n    takeaway: takeaway.slice(0, 400),\n    sourceUrl: src.sourceUrl,\n    sourceType: 'hn',\n  });\n}\n\n// Nothing usable this run is a normal outcome, not an error.\nif (!reports.length) return [];\nreturn [{ json: { reports } }];"
+      },
+      "id": "build-payload",
+      "name": "Keep usable reports",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [940, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.TRACKAI_BASE_URL }}/api/ingest/reports",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.TRACKAI_INGEST_TOKEN }}" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ reports: $json.reports }) }}",
+        "options": { "timeout": 30000 }
+      },
+      "id": "post-reports",
+      "name": "POST /api/ingest/reports",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1160, 0]
+    }
+  ],
+  "connections": {
+    "Every 6 hours": { "main": [[{ "node": "GET tracked models", "type": "main", "index": 0 }]] },
+    "GET tracked models": { "main": [[{ "node": "One item per model", "type": "main", "index": 0 }]] },
+    "One item per model": { "main": [[{ "node": "HN comment search", "type": "main", "index": 0 }]] },
+    "HN comment search": { "main": [[{ "node": "Build candidates", "type": "main", "index": 0 }]] },
+    "Build candidates": { "main": [[{ "node": "Claude summarize", "type": "main", "index": 0 }]] },
+    "Claude summarize": { "main": [[{ "node": "Keep usable reports", "type": "main", "index": 0 }]] },
+    "Keep usable reports": { "main": [[{ "node": "POST /api/ingest/reports", "type": "main", "index": 0 }]] }
+  }
+}
