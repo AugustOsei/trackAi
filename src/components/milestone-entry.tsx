@@ -30,14 +30,16 @@ export function MilestoneEntry({
   date,
   color,
   onLeft,
-  showConnector,
+  showDot,
   index,
 }: {
   model: TimelineModel;
   date: Date;
   color: string;
   onLeft: boolean;
-  showConnector: boolean;
+  /** Only the first model of a shared date carries the axis dot; every model
+   *  still gets its own trail so nothing floats unconnected. */
+  showDot: boolean;
   index: number;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -62,27 +64,25 @@ export function MilestoneEntry({
             onLeft ? "sm:flex-row-reverse" : ""
           }`}
         >
-          {showConnector && (
-            <>
-              <span
-                className={`absolute top-1/2 h-3.5 w-3.5 -translate-y-1/2 rounded-full ${DOT_POS[side]}`}
-                style={{
-                  backgroundColor: color,
-                  boxShadow: `0 0 0 4px var(--color-bg), 0 0 12px ${color}59`,
-                }}
-              />
-              <span
-                data-side={side}
-                className={`timeline-trail absolute top-1/2 h-px -translate-y-1/2 ${TRAIL_POS[side]}`}
-                style={
-                  {
-                    "--trail-color": color,
-                    animationDelay: `${delay + 120}ms`,
-                  } as React.CSSProperties
-                }
-              />
-            </>
+          {showDot && (
+            <span
+              className={`absolute top-1/2 z-10 h-3.5 w-3.5 -translate-y-1/2 rounded-full ${DOT_POS[side]}`}
+              style={{
+                backgroundColor: color,
+                boxShadow: `0 0 0 4px var(--color-bg), 0 0 12px ${color}59`,
+              }}
+            />
           )}
+          <span
+            data-side={side}
+            className={`timeline-trail absolute top-1/2 h-px -translate-y-1/2 ${TRAIL_POS[side]}`}
+            style={
+              {
+                "--trail-color": color,
+                animationDelay: `${delay + 120}ms`,
+              } as React.CSSProperties
+            }
+          />
 
           <span className="shrink-0 transition-transform duration-300 ease-out group-hover:scale-110">
             <span

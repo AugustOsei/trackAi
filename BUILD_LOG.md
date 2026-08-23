@@ -553,3 +553,57 @@ was wrong, not the code; re-running it with awaits showed all four states
 correct.
 
 `npm run build` clean.
+
+## 2026-08-23 — Ninth pass: real dates on the axis, real data, real logos
+
+Three things, one of which I should have caught two rounds earlier.
+
+**Dates were missing from the timeline.** Fair and slightly embarrassing:
+a timeline that shows only month headers and icons doesn't tell you when
+anything shipped. The day had been pushed into the expand panel back when
+the collapsed entry got stripped to icon+name. Fixed by putting the date
+in the *facing* column — desktop puts it in the empty half of the axis
+opposite the entry, which uses space that was doing nothing and reads like
+the reference infographic (date one side, content the other); mobile has
+no facing column, so it sits above the group. Future dates get an `EST.`
+prefix so an unconfirmed rumour never looks like a shipped fact.
+
+**Same-day releases, properly answered.** I had implemented grouping last
+round but only the *first* model of a shared date got a trail, so the rest
+floated unconnected — which is exactly why the question kept coming back.
+Now every model on a date gets its own trail; only the axis dot is shared,
+and the date label carries an "N releases" count. The three-way
+2026-07-09 GPT-5.6 Luna/Sol/Terra group is the proof case, and it reads
+unambiguously.
+
+**Real data, including non-US labs.** Replaced the invented seed with real
+release names and dates for Feb–Aug 2026 pulled from a public tracker
+(llmgateway.io), covering 14 providers across the US, China (Z.AI,
+MiniMax, Alibaba/Qwen, Moonshot, DeepSeek, ByteDance, Xiaomi), Japan
+(Sakana AI) and France (Mistral, in the registry pending a dated release).
+38 models total.
+
+Two deliberate honesty constraints in that seed, both documented in the
+file header:
+- **Benchmark numbers are placeholders**, and `benchmarkSource` says so
+  literally rather than crediting Artificial Analysis. Fabricated numbers
+  attributed to a real source would be worse than no numbers. Most models
+  carry no benchmark at all, which is also the true pre-sync state.
+- **Rumoured/announced entries are flagged as unconfirmed** and are not
+  presented as sourced claims about any lab's plans.
+
+Simple Icons turned out to cover most international labs — DeepSeek, Qwen,
+Moonshot, ByteDance, Xiaomi, MiniMax, Mistral all have real marks. It
+still omits OpenAI, xAI, Z.AI and Sakana AI, which keep monograms.
+Moonshot's brand colour is pure black, which would disappear on a
+near-black page, so its tile is inverted to light with a dark mark — the
+one place a real brand colour is overridden, and only for legibility.
+
+**Consequence worth noting**: real data means 14 providers, and the filter
+pill row went from one line to five on mobile, shoving the timeline below
+the fold. Made it a single horizontally-scrollable snap row under `sm`
+while keeping the wrap on desktop. A good example of realistic seed data
+surfacing a layout problem that invented three-provider data never would
+have.
+
+`npm run build` clean.

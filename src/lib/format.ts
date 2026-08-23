@@ -44,6 +44,17 @@ export function formatMonthYear(value: Date): string {
     .toUpperCase();
 }
 
+/** "MAR 20" — the month is already on the axis header, the day is what's new. */
+export function formatDayMonth(value: Date): string {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "2-digit",
+    timeZone: "UTC",
+  })
+    .format(value)
+    .toUpperCase();
+}
+
 export function formatMonthYearShort(value: Date): string {
   return new Intl.DateTimeFormat("en-US", {
     month: "short",

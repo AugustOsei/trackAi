@@ -49,12 +49,14 @@ export default async function TimelinePage({
         </p>
       </div>
 
-      <div className="mt-10 flex flex-wrap items-center gap-2">
+      {/* One scrollable row on small screens — with a dozen-plus providers,
+          wrapping pills would otherwise push the timeline off the fold. */}
+      <div className="timeline-scroll -mx-4 mt-10 flex snap-x items-center gap-2 overflow-x-auto px-4 pb-2 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
         {STATUSES.map((s) => (
           <Link
             key={s.value}
             href={hrefFor(s.value, provider)}
-            className={`font-display rounded-full px-4 py-2 text-sm font-bold transition-colors ${
+            className={`font-display shrink-0 snap-start rounded-full px-4 py-2 text-sm font-bold transition-colors ${
               status === s.value
                 ? "bg-gold text-gold-fg"
                 : "bg-surface text-ink-muted hover:text-ink"
@@ -63,10 +65,10 @@ export default async function TimelinePage({
             {s.label}
           </Link>
         ))}
-        <span className="mx-1 h-6 w-px bg-hairline" />
+        <span className="mx-1 h-6 w-px shrink-0 bg-hairline" />
         <Link
           href={hrefFor(status)}
-          className={`font-display rounded-full px-4 py-2 text-sm font-bold transition-colors ${
+          className={`font-display shrink-0 snap-start rounded-full px-4 py-2 text-sm font-bold transition-colors ${
             !provider ? "bg-surface-raised text-ink" : "bg-surface text-ink-muted hover:text-ink"
           }`}
         >
@@ -76,7 +78,7 @@ export default async function TimelinePage({
           <Link
             key={p}
             href={hrefFor(status, p)}
-            className={`font-display rounded-full px-4 py-2 text-sm font-bold transition-colors ${
+            className={`font-display shrink-0 snap-start rounded-full px-4 py-2 text-sm font-bold transition-colors ${
               provider === p ? "bg-surface-raised text-ink" : "bg-surface text-ink-muted hover:text-ink"
             }`}
           >

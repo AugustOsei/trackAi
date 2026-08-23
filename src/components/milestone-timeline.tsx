@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MilestoneEntry } from "@/components/milestone-entry";
 import { providerStyle } from "@/lib/providers";
-import { formatMonthYear, formatMonthYearShort } from "@/lib/format";
+import { formatDayMonth, formatMonthYear, formatMonthYearShort } from "@/lib/format";
 import type { Model } from "@/db/schema";
 
 type ReportPreview = { id: number; taskCategory: string; takeaway: string };
@@ -230,11 +230,35 @@ export function MilestoneTimeline({ models }: { models: TimelineModel[] }) {
                 const i = groupIndex;
                 groupIndex += 1;
 
+                const unreleased = row.models.every((m) => m.status !== "released");
+
                 return (
                   <div key={row.key} className="grid py-2 sm:grid-cols-2 sm:gap-x-16">
+                    {/* Date sits in the facing column, using the empty half of
+                        the axis rather than crowding the entry. */}
+                    <div
+                      className={`mb-1 pl-14 sm:mb-0 sm:pt-[17px] sm:pl-0 ${
+                        onLeft
+                          ? "sm:col-start-2 sm:row-start-1 sm:text-left"
+                          : "sm:col-start-1 sm:row-start-1 sm:text-right"
+                      }`}
+                    >
+                      <span className="font-data text-[11px] tracking-wider whitespace-nowrap text-ink-muted">
+                        {unreleased && <span className="text-ink-faint">EST. </span>}
+                        {formatDayMonth(row.date)}
+                      </span>
+                      {row.models.length > 1 && (
+                        <span className="font-data ml-2 text-[10px] text-ink-faint">
+                          {row.models.length} releases
+                        </span>
+                      )}
+                    </div>
+
                     <div
                       className={
-                        onLeft ? "sm:col-start-1 sm:flex sm:justify-end" : "sm:col-start-2"
+                        onLeft
+                          ? "sm:col-start-1 sm:row-start-1 sm:flex sm:justify-end"
+                          : "sm:col-start-2 sm:row-start-1"
                       }
                     >
                       <div className="flex w-full flex-col gap-1 sm:w-auto sm:max-w-xs">
@@ -245,7 +269,7 @@ export function MilestoneTimeline({ models }: { models: TimelineModel[] }) {
                             date={row.date}
                             color={providerStyle(m.provider).color}
                             onLeft={onLeft}
-                            showConnector={n === 0}
+                            showDot={n === 0}
                             index={i}
                           />
                         ))}
