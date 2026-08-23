@@ -854,3 +854,39 @@ that call `trackai.theaugustdispatch.com`, which doesn't exist yet. So the
 Anthropic-facing halves can be tested now, and the ingest halves light up the
 moment Vercel is live. No config change needed at that point — the URL is
 already correct.
+
+## 2026-08-23 — First deploy failed: a silent fallback I built in
+
+Vercel deploy came back with `ECONNREFUSED 127.0.0.1:5432` on every page — the
+deployed app trying to reach a Postgres on localhost.
+
+Root cause was mine. `src/db/index.ts` read:
+
+```ts
+const client = postgres(process.env.DATABASE_URL!);
+```
+
+The `!` is a TypeScript assertion and does nothing at runtime. Given
+`undefined`, the `postgres` driver quietly falls back to `localhost:5432`. So a
+*missing environment variable* presented as a *database connectivity failure* —
+pointing at Neon, or the network, or the pooler, when the real problem was
+config. That's the worst kind of error: it lies about its own cause.
+
+Worse, I'd written `src/lib/env.ts` specifically to catch this class of
+mistake, and then never wired it into the one module that most needed it.
+
+Fixed with an explicit runtime check that names the variable, says where to set
+it locally vs. on Vercel, specifies the pooled endpoint, and — the part that
+would actually have saved this deploy — notes that **Vercel only applies env
+var changes to new deployments**, so setting them after a failed deploy does
+nothing until you redeploy.
+
+Deliberately did *not* import `@/lib/env` here: that module has
+`import "server-only"`, which throws outside a Next server context and would
+break `npm run db:seed`. Same trap as the rate-limiter earlier. The guard is
+inlined instead.
+
+Also added a non-fatal warning when the production connection string lacks
+`-pooler`, since the direct endpoint works fine until serverless connection
+churn exhausts it — a failure that would appear later and under load, i.e. the
+hardest time to diagnose it.
