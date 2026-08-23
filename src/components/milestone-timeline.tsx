@@ -1,4 +1,4 @@
-import { MilestoneCard } from "@/components/milestone-card";
+import { MilestoneEntry } from "@/components/milestone-entry";
 import { providerStyle } from "@/lib/providers";
 import { formatMonthYear } from "@/lib/format";
 import type { Model } from "@/db/schema";
@@ -54,10 +54,9 @@ export function MilestoneTimeline({ models }: { models: TimelineModel[] }) {
                 </div>
 
                 <div className={`col-start-2 ${onLeft ? "sm:col-start-1" : "sm:col-start-3"}`}>
-                  <MilestoneCard
+                  <MilestoneEntry
                     model={model}
                     date={date}
-                    color={style.color}
                     onLeft={onLeft}
                     tiltDeg={onLeft ? -1.5 : 1.5}
                     index={i}

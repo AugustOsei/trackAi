@@ -12,17 +12,15 @@ import type { Model } from "@/db/schema";
 type ReportPreview = { id: number; taskCategory: string; takeaway: string };
 type TimelineModel = Model & { reports: ReportPreview[] };
 
-export function MilestoneCard({
+export function MilestoneEntry({
   model,
   date,
-  color,
   onLeft,
   tiltDeg,
   index,
 }: {
   model: TimelineModel;
   date: Date;
-  color: string;
   onLeft: boolean;
   tiltDeg: number;
   index: number;
@@ -33,25 +31,16 @@ export function MilestoneCard({
   const cardDelay = Math.min(index * 70, 500);
 
   return (
-    <div
-      className="timeline-card-enter sm:max-w-xs"
-      style={{ animationDelay: `${cardDelay}ms` }}
-    >
+    <div className="timeline-card-enter sm:max-w-xs" style={{ animationDelay: `${cardDelay}ms` }}>
       <div
-        className={`rounded-2xl bg-surface transition-transform duration-300 ease-out ${
-          onLeft ? "sm:ml-auto" : ""
-        }`}
-        style={{
-          borderInlineStart: !onLeft ? `3px solid ${color}` : undefined,
-          borderInlineEnd: onLeft ? `3px solid ${color}` : undefined,
-          transform: expanded ? "rotate(0deg)" : `rotate(${tiltDeg}deg)`,
-        }}
+        className="transition-transform duration-300 ease-out"
+        style={{ transform: expanded ? "rotate(0deg)" : `rotate(${tiltDeg}deg)` }}
       >
         <button
           type="button"
           onClick={() => setExpanded((e) => !e)}
           aria-expanded={expanded}
-          className={`group flex w-full items-center gap-3 rounded-2xl p-3 text-left transition-colors hover:bg-surface-raised ${
+          className={`group flex w-full items-center gap-3 py-1 text-left ${
             onLeft ? "sm:flex-row-reverse sm:text-right" : ""
           }`}
         >
@@ -77,7 +66,7 @@ export function MilestoneCard({
           style={{ gridTemplateRows: expanded ? "1fr" : "0fr" }}
         >
           <div className="overflow-hidden">
-            <div className="space-y-3 border-t border-hairline p-3.5 pt-3">
+            <div className={`space-y-3 py-3 ${onLeft ? "sm:text-right" : ""}`}>
               <p className="font-data text-xs text-ink-muted">
                 {model.provider} ·{" "}
                 {model.status === "released" ? formatDate(date) : `expected ${formatDate(date)}`}
@@ -95,7 +84,10 @@ export function MilestoneCard({
               {reportCount > 0 ? (
                 <ul className="space-y-2">
                   {model.reports.slice(0, 3).map((r) => (
-                    <li key={r.id} className="flex items-start gap-2 text-xs text-ink-muted">
+                    <li
+                      key={r.id}
+                      className={`flex items-start gap-2 text-xs text-ink-muted ${onLeft ? "sm:flex-row-reverse" : ""}`}
+                    >
                       <TaskTag category={r.taskCategory} />
                       <span className="flex-1">{r.takeaway}</span>
                     </li>

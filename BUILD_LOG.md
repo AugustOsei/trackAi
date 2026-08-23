@@ -416,3 +416,35 @@ round, just avoided up front this time instead of hit and fixed.
 
 `npm run build` clean. Verified both breakpoints; expand-to-reveal still
 works with the trimmed-down collapsed state.
+
+## 2026-08-23 — Sixth pass: stop wrapping everything in a card
+
+Direct, correct criticism: every version of this timeline, across five
+rounds of changes, wrapped each entry in a `bg-surface rounded-2xl` box.
+Colors, tilt, motion, expand — all real changes — but the underlying shape
+never moved past "rectangle with padding," which is close to the single
+most recognizable generic-component default there is. modelrumor.com's
+actual entries have no wrapping box at all: just the logo tile (which has
+its own shape and color as a *logo*, not a card) and a text label sitting
+directly on the page background. I'd been polishing the box instead of
+questioning whether it should exist.
+
+Removed it. `MilestoneCard` renamed to `MilestoneEntry` (the file too —
+not just the styling, the concept) and rebuilt with no background, no
+border, no hover-fill: just the provider badge and model name floating on
+the page, connected to the spine by position alone. The provider-color
+accent that used to live on the card's border is gone too — it was
+redundant anyway, since the spine dot and the icon itself already carry
+that color; a third copy of the same signal was in service of the box, not
+the information. Expanded content (blurb, report previews, read more) now
+appears as plain text below the icon+name, no card forming around it
+either — just spacing and type hierarchy doing the work.
+
+Worth noting for later: `ReportCard`, the model-detail benchmark panel,
+and the admin queue all use the same `bg-surface` card pattern this
+critique applies to. Left them alone this round since the actual complaint
+was about the timeline specifically, but the same question — does this
+need a box, or does spacing and hierarchy already do the job — is worth
+asking there too before calling the rest of the site done.
+
+`npm run build` clean.
