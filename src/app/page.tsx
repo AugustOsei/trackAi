@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getTimelineModels, getProviders } from "@/lib/queries";
-import { TimelineGrid } from "@/components/timeline-grid";
+import { MilestoneTimeline } from "@/components/milestone-timeline";
 import type { Model } from "@/db/schema";
 
 export const dynamic = "force-dynamic";
@@ -85,7 +85,7 @@ export default async function TimelinePage({
         ))}
       </div>
 
-      <TimelineGrid models={models} />
+      <MilestoneTimeline models={models} />
     </div>
   );
 }

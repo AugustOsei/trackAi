@@ -269,3 +269,46 @@ expected). So the component is fine — this was a click-timing quirk in the
 sandboxed browser tool itself, not app code, similar to the
 screenshot-after-scroll artifact from the first design pass. Real
 touch/mouse input in an actual browser isn't affected.
+
+## 2026-08-23 — Third pass: a vertical milestone timeline, not horizontal
+
+Third round on the same page. This time Augustine sent an actual reference
+image instead of a URL — a stock "company milestones" infographic: a
+single vertical spine down the center, alternating left/right content
+blocks, a colored dot + connector per entry, year on the spine. Completely
+different structure from what I'd built twice now (a horizontal
+scroll/pan), and it's obviously the right call in hindsight: a vertical
+alternating timeline is a genuinely well-established, instantly-legible
+pattern (it's the standard "About Us / Our History" layout across
+mainstream sites) precisely because it needs zero special interaction
+knowledge — everything is visible on the page's normal vertical scroll.
+The horizontal grid, even with visible arrows and gridlines, still asked
+first-time visitors to discover a sideways-scrolling section, which is
+exactly the kind of thing that reads as "clear" to someone who already
+knows what they built and opaque to someone seeing it cold.
+
+Rebuilt `MilestoneTimeline` from scratch replacing `TimelineGrid` entirely
+(deleted `timeline-grid.tsx` and `timeline-math.ts` — no pixel-per-day
+math needed anymore, just chronological sort order and a "does this date
+come after now" check for where TODAY goes). Kept from the horizontal
+version: real provider logos, the TODAY marker, "N reports" per model.
+Changed the connector from a literal 3D triangle (too skeuomorphic for
+this look) to a colored left/right border on each card matching its
+provider's dot color — same "which entry belongs to which dot" job, flatter
+execution.
+
+One structural choice worth noting: colored each dot/card accent by
+*provider brand color* rather than an arbitrary rainbow per entry like the
+reference image. The reference's colors don't mean anything (milestone 1
+is yellow because it's first, not because of what it represents) — ours do
+(the dot is blue because that entry is from Google DeepMind), which is a
+small thing but it's the same "structure should encode something true"
+principle that's been a throughline all three passes.
+
+Responsive approach: one component, not two. Mobile collapses to spine-on-
+the-left with all cards on the right (a single `grid-cols-[28px_1fr] →
+sm:grid-cols-[1fr_28px_1fr]` swap per row), rather than switching to some
+separate mobile-only layout — same DOM, same data, just different column
+placement at the breakpoint.
+
+Verified desktop and mobile again. `npm run build` clean.
