@@ -448,3 +448,42 @@ need a box, or does spacing and hierarchy already do the job — is worth
 asking there too before calling the rest of the site done.
 
 `npm run build` clean.
+
+## 2026-08-23 — Seventh pass: close the gap, draw a trail
+
+Removing the card in round six fixed the "why does everything need a
+card" problem but exposed a second, real one: without a box holding icon
+and label together, and without anything connecting them to the spine,
+left-side entries just... floated, disconnected, far from the axis. Not a
+style note, an actual layout bug — I'd stripped the card's `sm:ml-auto`
+class along with its background/border when I removed the card styling,
+conflating "remove the decoration" with "remove the positioning," and
+never re-added the thing that was pinning content against the spine.
+
+Fixed the gap (re-added the alignment, entries now sit snug against the
+axis on both sides) and, per the actual request, added something better
+than a static line: an animated trail. Each entry now gets a short colored
+line (matching its provider's color, same one on the spine dot) that
+draws itself from the dot to the icon on load — `scaleX(0→1)` with
+`transform-origin` pinned to the dot side, so it visibly travels outward
+rather than just fading in. Timed so the trail finishes right as the icon
+pop animation starts, reading as "the line arrives, then the icon appears"
+rather than two unrelated things happening near each other.
+
+Rebuilt the row as a single 5-column grid (`content | connector | dot |
+connector | content`, collapsing to `dot | connector | content` on mobile)
+with the dot always in the fixed center column regardless of which side
+has content — same single-instance-per-model, responsive-column-only
+approach as the round-3 duplicate-card fix, applied up front this time.
+
+**Caught before it went out**: initially used `items-center` on the row,
+which is right for a collapsed entry but wrong once one expands — grid
+centers items against the *tallest* item in the row, so an expanded
+entry's dot and connector line drifted down to the vertical middle of the
+whole expanded block instead of staying pinned to the icon. Switched to
+`items-start` with an explicit top offset matching the icon's own
+vertical center, so the connector stays anchored to the header regardless
+of how tall the expanded content underneath it gets.
+
+`npm run build` clean. Verified both breakpoints, and the expand
+interaction with the now-anchored connector.

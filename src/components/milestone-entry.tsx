@@ -46,7 +46,7 @@ export function MilestoneEntry({
         >
           <span
             className="timeline-icon-pop shrink-0 transition-transform duration-300 ease-out group-hover:scale-110 group-hover:[transform:rotate(-6deg)_scale(1.1)]"
-            style={{ animationDelay: `${cardDelay + 150}ms` }}
+            style={{ animationDelay: `${cardDelay + 280}ms` }}
           >
             <ProviderBadge provider={model.provider} size="md" />
           </span>
