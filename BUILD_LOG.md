@@ -312,3 +312,61 @@ separate mobile-only layout — same DOM, same data, just different column
 placement at the breakpoint.
 
 Verified desktop and mobile again. `npm run build` clean.
+
+## 2026-08-23 — Month indicators, real motion, click-to-expand cards
+
+Fourth round on the same page, same session. Three specific asks: no way
+to tell what date range the timeline covers at a glance; the provider
+badges were visually inert ("boring as an old woman" — fair); cards should
+expand in place on click instead of only linking away.
+
+**Date orientation.** Added a small divider row whenever the month changes
+between consecutive entries (`MonthDivider`, reusing the same TODAY-divider
+grid structure) — so scrolling down the page now reads MARCH 2026 → JUNE
+2026 → AUGUST 2026 → TODAY → SEPTEMBER 2026 → NOVEMBER 2026 as a plain
+sequence of labels, no guessing where you are.
+
+**Motion, researched not guessed.** Went back to modelrumor.com and
+actually inspected the icon tiles' `getComputedStyle` rather than assuming
+what "small animated movement" meant. Their cards sit at a small resting
+rotation (~-5°, via a transform matrix) and animate `left`/`top`/`width`/
+`height` on a smooth cubic-bezier as they reposition — not a looping/pulsing
+idle animation, interaction-driven motion. Adapted that to our layout
+rather than copying the exact mechanic (their tilt is tied to a
+single-focus carousel we deliberately moved away from last round): each
+card now rests at a small alternating tilt (±1.5°, matching which side of
+the spine it's on) that straightens to 0° when expanded, and the provider
+badge itself gets a small scale-and-counter-rotate wobble on hover. Also
+finally put the `.reveal-on-scroll` CSS (`animation-timeline: view()`,
+written in the very first design pass and never actually used) to work —
+cards now fade/rise in as they scroll into view, native CSS, no JS
+animation library.
+
+**Click-to-expand.** Cards are now buttons, not links — clicking toggles
+an inline panel (provider blurb, up to 3 report previews with task tags,
+"Read more →" to the full model page) using the CSS `grid-template-rows:
+0fr → 1fr` technique for a smooth height animation without measuring
+`scrollHeight` in JS. Needed a data change to support it: `getTimelineModels`
+was only fetching report *counts* (`columns: { id: true }`) — bumped it to
+also pull `taskCategory` and `takeaway` so the preview has something to
+show. `MilestoneCard` split out into its own client component file since
+it now owns real state; `MilestoneTimeline` stays a plain server component
+around it.
+
+**Real bug caught while verifying, not a tool artifact this time.**
+Testing the expand toggle, `aria-expanded` on the clicked button correctly
+flipped to `"true"` but nothing visibly changed. Traced it with
+`getBoundingClientRect()` down the parent chain and found the clicked
+button lived inside a `sm:hidden` wrapper — a leftover from how the
+alternating-sides layout was built in round 3: each card was being
+rendered *twice* (once for the desktop grid slot, once more wrapped in
+`sm:hidden` as a mobile fallback), which was harmless when cards were
+inert links but became a real bug the moment they got their own state,
+since the two copies are fully independent component instances. Fixed by
+rendering each model's card exactly once and giving it responsive
+`grid-column`/alignment classes instead of duplicating the DOM — the kind
+of thing that's obvious in hindsight but only showed up once the cards had
+something to desync.
+
+`npm run build` clean. Verified the expand interaction and the tilt on
+both breakpoints after the fix.

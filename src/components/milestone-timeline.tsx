@@ -1,16 +1,18 @@
-import Link from "next/link";
-import { ProviderBadge } from "@/components/provider-badge";
-import { StatusDot } from "@/components/status-dot";
-import { NewBadge } from "@/components/new-badge";
+import { MilestoneCard } from "@/components/milestone-card";
 import { providerStyle } from "@/lib/providers";
-import { formatDate, formatIndex, formatPrice, isRecent } from "@/lib/format";
+import { formatMonthYear } from "@/lib/format";
 import type { Model } from "@/db/schema";
 
-type TimelineModel = Model & { reports: { id: number }[] };
+type ReportPreview = { id: number; taskCategory: string; takeaway: string };
+type TimelineModel = Model & { reports: ReportPreview[] };
 
 function modelDate(model: TimelineModel): Date | null {
   const raw = model.actualDate ?? model.predictedDate;
   return raw ? new Date(`${raw}T00:00:00Z`) : null;
+}
+
+function monthKey(d: Date): string {
+  return `${d.getUTCFullYear()}-${d.getUTCMonth()}`;
 }
 
 export function MilestoneTimeline({ models }: { models: TimelineModel[] }) {
@@ -36,17 +38,14 @@ export function MilestoneTimeline({ models }: { models: TimelineModel[] }) {
         {dated.map(({ model, date }, i) => {
           const style = providerStyle(model.provider);
           const onLeft = i % 2 === 0;
-          const isNew = model.status === "released" && isRecent(date);
+          const isNewMonth = i === 0 || monthKey(date) !== monthKey(dated[i - 1].date);
 
           return (
             <div key={model.id}>
+              {isNewMonth && <MonthDivider date={date} />}
               {i === todayIndex && <TodayDivider />}
 
               <div className="grid grid-cols-[28px_1fr] items-center gap-x-4 sm:grid-cols-[1fr_28px_1fr] sm:gap-x-6">
-                <div className="hidden sm:col-start-1 sm:block">
-                  {onLeft && <Card model={model} date={date} style={style} align="right" isNew={isNew} />}
-                </div>
-
                 <div className="col-start-1 flex justify-center sm:col-start-2">
                   <span
                     className="z-10 h-3.5 w-3.5 shrink-0 rounded-full ring-4 ring-bg"
@@ -54,8 +53,14 @@ export function MilestoneTimeline({ models }: { models: TimelineModel[] }) {
                   />
                 </div>
 
-                <div className={`col-start-2 sm:col-start-3 ${onLeft ? "sm:hidden" : ""}`}>
-                  <Card model={model} date={date} style={style} align="left" isNew={isNew} />
+                <div className={`col-start-2 ${onLeft ? "sm:col-start-1" : "sm:col-start-3"}`}>
+                  <MilestoneCard
+                    model={model}
+                    date={date}
+                    color={style.color}
+                    onLeft={onLeft}
+                    tiltDeg={onLeft ? -1.5 : 1.5}
+                  />
                 </div>
               </div>
             </div>
@@ -63,6 +68,22 @@ export function MilestoneTimeline({ models }: { models: TimelineModel[] }) {
         })}
 
         {todayIndex === -1 && <TodayDivider />}
+      </div>
+    </div>
+  );
+}
+
+function MonthDivider({ date }: { date: Date }) {
+  return (
+    <div className="grid grid-cols-[28px_1fr] items-center gap-x-4 py-3 sm:grid-cols-[1fr_28px_1fr] sm:gap-x-6">
+      <div className="hidden sm:col-start-1 sm:block" />
+      <div className="col-start-1 flex justify-center sm:col-start-2">
+        <span className="h-2 w-2 rounded-full bg-ink-faint" />
+      </div>
+      <div className="col-start-2 sm:col-start-3">
+        <span className="font-display text-xs font-black tracking-[0.15em] text-ink-faint">
+          {formatMonthYear(date)}
+        </span>
       </div>
     </div>
   );
@@ -79,61 +100,5 @@ function TodayDivider() {
       </div>
       <div className="col-start-2 h-px bg-gold/40 sm:col-start-3" />
     </div>
-  );
-}
-
-function Card({
-  model,
-  date,
-  style,
-  align,
-  isNew,
-}: {
-  model: TimelineModel;
-  date: Date;
-  style: { color: string };
-  align: "left" | "right";
-  isNew: boolean;
-}) {
-  const reportCount = model.reports.length;
-
-  return (
-    <Link
-      href={`/models/${model.slug}`}
-      className={`group flex gap-3 rounded-2xl bg-surface p-3.5 transition-colors hover:bg-surface-raised sm:max-w-sm ${
-        align === "right" ? "sm:ml-auto sm:flex-row-reverse sm:text-right" : ""
-      }`}
-      style={{
-        borderInlineStart: align === "left" ? `3px solid ${style.color}` : undefined,
-        borderInlineEnd: align === "right" ? `3px solid ${style.color}` : undefined,
-      }}
-    >
-      <ProviderBadge provider={model.provider} size="md" />
-      <div className="min-w-0 flex-1">
-        <div className={`flex flex-wrap items-center gap-1.5 ${align === "right" ? "sm:justify-end" : ""}`}>
-          <span className="font-display text-base font-extrabold leading-tight text-ink group-hover:text-gold">
-            {model.name}
-          </span>
-          <StatusDot status={model.status} />
-          {isNew && <NewBadge />}
-        </div>
-        <p className="font-data mt-0.5 text-xs text-ink-muted">
-          {model.provider} · {model.status === "released" ? formatDate(date) : `expected ${formatDate(date)}`}
-        </p>
-
-        {model.status === "released" ? (
-          <p className="font-data mt-1.5 text-xs text-ink-muted" data-numeric>
-            <span className="text-ink">{formatIndex(model.intelligenceIndex)}</span> intelligence ·{" "}
-            {formatPrice(model.pricePerMtok)}/Mtok
-          </p>
-        ) : (
-          <p className="font-data mt-1.5 text-xs text-ink-faint">benchmarks pending</p>
-        )}
-
-        <p className="font-display mt-1.5 text-xs font-bold text-ink-muted">
-          {reportCount} {reportCount === 1 ? "report" : "reports"}
-        </p>
-      </div>
-    </Link>
   );
 }

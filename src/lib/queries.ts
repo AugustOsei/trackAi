@@ -18,7 +18,8 @@ export async function getTimelineModels(filters: {
     with: {
       reports: {
         where: eq(reports.status, "approved"),
-        columns: { id: true },
+        orderBy: [desc(reports.approvedAt)],
+        columns: { id: true, taskCategory: true, takeaway: true },
       },
     },
   });
