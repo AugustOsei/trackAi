@@ -1,0 +1,121 @@
+import type { Metadata } from "next";
+import { StatusDot } from "@/components/status-dot";
+import { Perforation } from "@/components/perforation";
+
+export const metadata: Metadata = {
+  title: "About",
+  description: "How trackai sources, reviews, and publishes model claims and reality checks.",
+};
+
+export default function AboutPage() {
+  return (
+    <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6">
+      <h1 className="font-display text-4xl font-bold text-ink">
+        Claims are easy. Reality is the hard part.
+      </h1>
+      <p className="mt-4 text-ink-muted">
+        Every AI lab publishes benchmark numbers when it ships a model. Most
+        of those numbers are accurate. Few of them tell you what the model is
+        actually like to use. trackai tracks both, side by side, and treats
+        them differently — because they come from different places and
+        deserve different levels of trust.
+      </p>
+
+      <section className="mt-12">
+        <h2 className="font-display text-2xl font-semibold text-ink">
+          Two layers of data
+        </h2>
+
+        <div className="mt-6">
+          <h3 className="font-data text-xs font-semibold tracking-[0.15em] text-gold">
+            CLAIM — CONFIRMED RELEASES &amp; BENCHMARKS
+          </h3>
+          <p className="mt-2 text-ink">
+            Release dates and benchmark scores come from the{" "}
+            <a
+              href="https://artificialanalysis.ai"
+              className="text-gold hover:underline"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Artificial Analysis
+            </a>{" "}
+            data API, synced automatically. This layer is high-confidence and
+            publishes without a human in the loop — it’s the same kind of
+            data you’d find in a provider’s own release notes.
+          </p>
+        </div>
+
+        <Perforation className="my-8" />
+
+        <div>
+          <h3 className="font-data text-xs font-semibold tracking-[0.15em] text-gold">
+            REALITY — REVIEWED REPORTS
+          </h3>
+          <p className="mt-2 text-ink">
+            Reports start as posts on Hacker News, or submissions from
+            readers, describing what happened when someone actually used a
+            model on a real task. Each one is summarized into a short
+            takeaway and a task tag — never a copy of the original text —
+            with a link back to the source. Nothing here is confirmed
+            information the way a release date is; it’s one person’s
+            account, and it’s presented that way.
+          </p>
+        </div>
+      </section>
+
+      <section className="mt-12">
+        <h2 className="font-display text-2xl font-semibold text-ink">
+          Review, before anything is public
+        </h2>
+        <p className="mt-2 text-ink">
+          Because reality-check reports are lower-confidence than confirmed
+          releases, nothing from that layer goes live automatically. Every
+          report — sourced from Hacker News or submitted directly — sits in
+          a review queue until it’s approved. Rejected reports never appear
+          on the site. There’s no algorithmic ranking or voting behind what
+          gets published; it’s a single editorial pass.
+        </p>
+      </section>
+
+      <section className="mt-12">
+        <h2 className="font-display text-2xl font-semibold text-ink">
+          Reading the status marker
+        </h2>
+        <p className="mt-2 text-ink">
+          The dot next to a model’s name on the timeline shows how confirmed
+          it is:
+        </p>
+        <ul className="font-data mt-4 space-y-3 text-sm text-ink-muted">
+          <li className="flex items-center gap-3">
+            <StatusDot status="rumored" /> Rumored — talked about, nothing
+            official yet.
+          </li>
+          <li className="flex items-center gap-3">
+            <StatusDot status="announced" /> Announced — the provider has
+            confirmed it’s coming.
+          </li>
+          <li className="flex items-center gap-3">
+            <StatusDot status="released" /> Released — shipped, with
+            benchmark data attached.
+          </li>
+        </ul>
+      </section>
+
+      <section className="mt-12">
+        <h2 className="font-display text-2xl font-semibold text-ink">
+          Submit a report
+        </h2>
+        <p className="mt-2 text-ink">
+          If you’ve tried a model on a real task and it’s not reflected here
+          yet,{" "}
+          <a href="/submit" className="text-gold hover:underline">
+            submit a report
+          </a>
+          . One line on what happened, a link to back it up, and the task
+          category it falls under.
+        </p>
+      </section>
+    </div>
+  );
+}

@@ -9,7 +9,7 @@ async function seed() {
   await db.delete(reports);
   await db.delete(models);
 
-  const [opus, gptNext, geminiNext, grokNext, llamaNext] = await db
+  const [opus, gptNext, geminiNext] = await db
     .insert(models)
     .values([
       {

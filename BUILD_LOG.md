@@ -64,3 +64,80 @@ dead ends, and things that surprised me, in the order they happened.
   original brief — this gives the n8n ingestion workflow a natural
   `ON CONFLICT DO NOTHING` dedup key instead of needing a separate
   select-then-insert check.
+
+- **Revised**: swapped the Neon HTTP driver (`@neondatabase/serverless`)
+  for `postgres-js` (`drizzle-orm/postgres-js`). Neon's HTTP driver only
+  talks to Neon's own edge proxy, so it's useless against a local Postgres
+  — and since neither Vercel Hobby functions nor `proxy.ts` run on the edge
+  runtime for this app (Next 16 dropped edge support for proxy entirely),
+  there's no cold-start advantage to the HTTP driver here anyway. Standard
+  TCP Postgres works identically against Neon in production and a local
+  instance in development — one driver, no environment branching.
+  Installed local Postgres 16 via Homebrew (no Docker on this machine) so
+  every page in this build is checked against a real database, not mocks,
+  without waiting on Neon account creation.
+
+## 2026-08-23 — Design system & five pages
+
+- Ran the design process properly (brainstorm → critique → build) instead
+  of jumping to Tailwind defaults. The brief's dark data-console direction
+  was already specific and good, so I kept it, but pushed one level further
+  to avoid the "near-black + one neon accent" AI-tell the brief itself
+  warned against: **deep navy** (not near-black) with a second charcoal
+  surface tone for real layering, gold scoped to confidence states + one
+  CTA rather than every interactive element, hairline rules with zero
+  border-radius instead of shadows.
+
+- **Signature element**: a torn-ticket perforation (dashed rule + two
+  punched "eyelets") as the recurring divider between CLAIM and REALITY
+  everywhere they meet — the timeline row, the model detail page, the
+  report cards. It's not decoration; it's the brief's actual mechanism
+  (claim vs. reality as two halves of one ticket) made visible.
+
+- **Typography as provenance**: three faces, each with a rule, not just a
+  look. **Big Shoulders** (display, headings) — a condensed face with a
+  stamped-signage heritage that matches the ticket motif. **IBM Plex Sans**
+  (body) — anything a human wrote (blurbs, takeaways, prose). **JetBrains
+  Mono** (data) — anything sourced or verifiable (dates, indices, prices,
+  status labels, source domains). The mono/sans split isn't just texture —
+  it's a legend a reader can learn: mono means "check the source," sans
+  means "someone's account."
+
+- **Status confidence as fill-state, not color**: rather than a third
+  traffic-light color for rumored/announced/released, the same gold dot
+  fills progressively — hollow, half, solid. One accent color, three
+  meanings, and it echoes the confirmed-vs-reviewed split that runs through
+  the whole site.
+
+- **Dead end**: `next/font/google` has no `Big_Shoulders_Display` export —
+  Google merged Big Shoulders Display/Text into one variable family
+  (`Big_Shoulders`, with an `opsz` axis) at some point after my training
+  data. Two-minute fix once I checked the font's actual metadata in
+  `node_modules`.
+
+- **Dead end, more interesting**: screenshots taken via the browser tool
+  *after* scrolling came back with a large blank gap and ghosted text,
+  every time, regardless of whether the scroll was a simulated mouse wheel
+  or `window.scrollTo()`. Spent a while suspecting my own CSS — first the
+  SVG film-grain texture (`feTurbulence` on a fixed pseudo-element is
+  genuinely expensive to repaint, so it was a reasonable first suspect;
+  removed it anyway since it's a nice-to-have), then the `@view-transition`
+  rule. Neither fixed it. Confirmed with `getBoundingClientRect()` in the
+  console that the actual DOM layout was correct at every scroll position —
+  it was the *screenshot capture* that was broken, not the page. Worked
+  around it by resizing the viewport tall enough to capture full pages
+  without scrolling. Filed away as a tool quirk, not a app bug.
+
+- Verified end-to-end against the local Postgres instance: seeded data
+  renders correctly on all five pages, the `/admin` proxy gate redirects
+  correctly when logged out, login sets a valid session cookie, and
+  approving a pending report in the queue immediately makes it live on
+  `/reports` (confirms the `revalidatePath` calls in the server actions are
+  wired correctly). Checked mobile width (375px) too — the nav overflowed
+  off-screen on first pass since I hadn't planned for four links plus a
+  wordmark at that width; fixed with `flex-wrap` rather than adding a
+  hamburger menu, since four links wrapping to a second line is simpler
+  and reads fine on a data-dense site like this.
+
+- `npm run build` passes clean; data pages are correctly marked dynamic
+  (`ƒ`), `/about` and `/admin/login` prerender as static (`○`).
