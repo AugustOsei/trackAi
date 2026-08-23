@@ -796,3 +796,33 @@ immediately and asked for rotation; it matters more than usual here because
 this build is being documented publicly. Two lessons: mask by construction
 rather than by grepping for a name, and test the masking regex against the
 actual key names.
+
+## 2026-08-23 — Anthropic key live, and a bug the first real call caught
+
+Key works. Verified not with a "hello world" but by sending the *actual*
+request shape the workflow will send — real system prompt, real strict tool
+schema, real comment. That choice immediately paid for itself.
+
+**The bug:** the takeaway came back at **431 characters** against the ingest
+API's 400-character limit. The workflow does `.slice(0, 400)` as a backstop,
+so nothing would have errored — it would have silently published cards
+truncated mid-word. The kind of failure that looks like a design problem for
+weeks before anyone traces it to a prompt.
+
+Second issue in the same response: the voice was wrong. It wrote *"User
+reports using Claude Opus 5 as the primary driver for…"* — reportage, where
+every existing card on the site reads as a direct finding ("Handled a
+multi-file refactor across an unfamiliar Rust codebase…").
+
+Fixed by tightening the prompt rather than leaning on the truncation: a hard
+200-character instruction, an explicit ban on "User reports"/"The user"
+openings, and a good/bad example pair. Re-tested against the prompt extracted
+from the workflow file itself, so the test exercised what will actually run
+rather than a hand-written approximation of it.
+
+Result: 431 → **181 characters**, correct voice, and a second test case (pure
+market speculation about pricing) was correctly classified `usable: false` and
+dropped before reaching the review queue.
+
+Two test calls cost about $0.003 total, which is a reasonable price for
+catching a defect that would otherwise have shipped unattended.
