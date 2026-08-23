@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { getTimelineModels, getProviders } from "@/lib/queries";
-import { formatMonthLabel } from "@/lib/format";
-import { ModelRow } from "@/components/model-row";
+import { TimelineGrid } from "@/components/timeline-grid";
 import type { Model } from "@/db/schema";
 
 export const dynamic = "force-dynamic";
@@ -28,14 +27,6 @@ export default async function TimelinePage({
     getProviders(),
   ]);
 
-  const groups = new Map<string, typeof models>();
-  for (const model of models) {
-    const date = model.actualDate ?? model.predictedDate ?? model.createdAt;
-    const key = formatMonthLabel(date);
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key)!.push(model);
-  }
-
   function hrefFor(nextStatus: string, nextProvider?: string) {
     const sp = new URLSearchParams();
     if (nextStatus !== "all") sp.set("status", nextStatus);
@@ -45,7 +36,7 @@ export default async function TimelinePage({
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
+    <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
       <div className="max-w-2xl">
         <h1 className="font-display text-5xl font-black leading-[0.92] tracking-tight text-ink sm:text-6xl">
           Every release.
@@ -94,26 +85,7 @@ export default async function TimelinePage({
         ))}
       </div>
 
-      {models.length === 0 ? (
-        <p className="mt-10 text-sm text-ink-muted">
-          Nothing matches those filters yet.
-        </p>
-      ) : (
-        Array.from(groups.entries()).map(([month, monthModels]) => (
-          <section key={month} className="mt-10">
-            <h2 className="font-display px-3 text-xs font-black tracking-[0.15em] text-ink-faint sm:px-4">
-              {month}
-            </h2>
-            <div className="mt-2 border-t border-hairline">
-              {monthModels.map((model) => (
-                <div key={model.id} className="border-b border-hairline">
-                  <ModelRow model={model} />
-                </div>
-              ))}
-            </div>
-          </section>
-        ))
-      )}
+      <TimelineGrid models={models} />
     </div>
   );
 }

@@ -11,17 +11,6 @@ export function formatDate(value: string | Date | null): string {
     .toUpperCase();
 }
 
-export function formatMonthLabel(value: string | Date): string {
-  const d = typeof value === "string" ? new Date(`${value}T00:00:00Z`) : value;
-  return new Intl.DateTimeFormat("en-US", {
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  })
-    .format(d)
-    .toUpperCase();
-}
-
 export function formatIndex(value: string | null): string {
   if (value === null) return "—";
   return Number(value).toFixed(1);

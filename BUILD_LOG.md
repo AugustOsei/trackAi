@@ -200,3 +200,72 @@ the token system rather than patching it:
 
 Re-verified all five pages plus the admin queue, desktop and mobile, after
 the rebuild. `npm run build` clean, no lint/type errors.
+
+## 2026-08-23 — Real logos and a horizontal calendar timeline
+
+Second round of feedback on the same design pass: the provider badges still
+read as "a letter in a colored square," and the vertical list-by-month
+didn't feel like the "calendar/graph" Augustine had pictured — closer to
+the modelrumor.com timeline mechanic (a horizontal ruler with cards
+plotted along it) than a scrolling list. Two real changes, not polish:
+
+**Real provider logos.** Installed `simple-icons` (MIT-licensed, the
+standard open dataset used across the web for exactly this — nominative/
+editorial identification of a brand, not an endorsement claim). It has
+current marks for Anthropic, Google DeepMind, and Meta. It does **not**
+have OpenAI or xAI, despite covering 3,400+ other brands — a real signal,
+not an oversight, that those two are more protective of their marks. I
+did not go find and embed those two logos from elsewhere (their own site,
+a screenshot, etc.) — reproducing a trademark that a much larger,
+long-running open-source project has chosen not to include is a worse
+risk/reward trade than a well-designed monogram. So: real logos for three
+providers, a refined initials badge (their real brand color, better
+typography) for OpenAI and xAI. Flagged this gap to Augustine rather than
+either quietly complying or quietly refusing.
+
+**Horizontal calendar timeline**, replacing the vertical month-grouped
+list entirely (`ModelRow` and the old month-grouping logic are gone —
+dead code once nothing referenced them). Inspected modelrumor.com's actual
+implementation directly (`getComputedStyle`, `getBoundingClientRect`) to
+understand the mechanic rather than guessing from the screenshot: it's a
+single very wide `<div>` (`.timeline-track`, tens of thousands of px)
+moved with a CSS `transform`, with ~84px between daily tick marks and
+labels every 7th tick.
+
+Built an analogous but bounded version — trackai's dataset is a curated
+handful of models, not modelrumor's hundreds, so an unbounded/virtualized
+track isn't needed. Default window is 3 months back through Dec 31,
+auto-expanded to include any model outside that window rather than
+silently clipping data that falls outside the "expected" range. Native
+`overflow-x: auto` instead of a transform-hijacked pan (simpler, and
+native scroll already has momentum/touch support built in — no reason to
+reinvent it). Cards alternate above/below a center axis line by
+chronological index, each connected to its date by a short stem, which is
+a standard trick for keeping adjacent-in-time cards from overlapping.
+
+First pass at the scale (26px/day, matching what I measured on the
+reference) put almost the entire page's content off-screen at once — only
+one card fit in the viewport, because a "last 3 months to end of year"
+window is ~7 months and the reference site's actual scale assumes an
+unbounded, endlessly-scrollable pan, not a bounded overview. Compressed to
+14px/day so 2–3 months are visible without scrolling, which is what
+"calendar overview" actually implies.
+
+Also added: full-height week gridlines (not just small ticks on the axis)
+so empty stretches of the timeline still read as *a grid* rather than
+blank space — directly answers "present like a grid," and matters more
+than it sounds like for a dataset this small early on. And explicit
+left/right arrow buttons, borrowed directly from modelrumor's own UI —
+horizontal scroll on a page section is a real discoverability risk for
+non-technical users who won't necessarily think to swipe sideways there
+without a visible affordance telling them to.
+
+**Debugging note**: verifying the arrow buttons hit a dead end that looked
+like a real bug — clicking them via the browser tool's coordinate-based
+and ref-based click did nothing, scroll position unchanged, no console
+errors. Confirmed via `element.click()` in the JS console that the button
+and its React handler work correctly (scroll position updated exactly as
+expected). So the component is fine — this was a click-timing quirk in the
+sandboxed browser tool itself, not app code, similar to the
+screenshot-after-scroll artifact from the first design pass. Real
+touch/mouse input in an actual browser isn't affected.
