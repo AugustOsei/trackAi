@@ -32,7 +32,7 @@ async function seed() {
         slug: "gpt-5-2",
         provider: "OpenAI",
         status: "released",
-        actualDate: "2026-05-02",
+        actualDate: "2026-08-20",
         providerBlurb:
           "Incremental update to GPT-5.1 with improved tool-use reliability.",
         intelligenceIndex: "69.8",

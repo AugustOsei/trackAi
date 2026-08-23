@@ -10,10 +10,10 @@ export const metadata: Metadata = {
 export default function AboutPage() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6">
-      <h1 className="font-display text-4xl font-bold text-ink">
+      <h1 className="font-display text-5xl font-black leading-[0.95] tracking-tight text-ink">
         Claims are easy. Reality is the hard part.
       </h1>
-      <p className="mt-4 text-ink-muted">
+      <p className="mt-4 text-lg text-ink-muted">
         Every AI lab publishes benchmark numbers when it ships a model. Most
         of those numbers are accurate. Few of them tell you what the model is
         actually like to use. trackai tracks both, side by side, and treats
@@ -22,12 +22,12 @@ export default function AboutPage() {
       </p>
 
       <section className="mt-12">
-        <h2 className="font-display text-2xl font-semibold text-ink">
+        <h2 className="font-display text-3xl font-black tracking-tight text-ink">
           Two layers of data
         </h2>
 
         <div className="mt-6">
-          <h3 className="font-data text-xs font-semibold tracking-[0.15em] text-gold">
+          <h3 className="font-display text-xs font-black tracking-[0.15em] text-gold">
             CLAIM — CONFIRMED RELEASES &amp; BENCHMARKS
           </h3>
           <p className="mt-2 text-ink">
@@ -49,7 +49,7 @@ export default function AboutPage() {
         <Perforation className="my-8" />
 
         <div>
-          <h3 className="font-data text-xs font-semibold tracking-[0.15em] text-gold">
+          <h3 className="font-display text-xs font-black tracking-[0.15em] text-gold">
             REALITY — REVIEWED REPORTS
           </h3>
           <p className="mt-2 text-ink">
@@ -65,7 +65,7 @@ export default function AboutPage() {
       </section>
 
       <section className="mt-12">
-        <h2 className="font-display text-2xl font-semibold text-ink">
+        <h2 className="font-display text-3xl font-black tracking-tight text-ink">
           Review, before anything is public
         </h2>
         <p className="mt-2 text-ink">
@@ -79,7 +79,7 @@ export default function AboutPage() {
       </section>
 
       <section className="mt-12">
-        <h2 className="font-display text-2xl font-semibold text-ink">
+        <h2 className="font-display text-3xl font-black tracking-tight text-ink">
           Reading the status marker
         </h2>
         <p className="mt-2 text-ink">
@@ -103,7 +103,7 @@ export default function AboutPage() {
       </section>
 
       <section className="mt-12">
-        <h2 className="font-display text-2xl font-semibold text-ink">
+        <h2 className="font-display text-3xl font-black tracking-tight text-ink">
           Submit a report
         </h2>
         <p className="mt-2 text-ink">

@@ -15,8 +15,8 @@ export default async function ReportsFeedPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6">
-      <h1 className="font-display text-4xl font-bold text-ink">Reports</h1>
-      <p className="mt-3 text-ink-muted">
+      <h1 className="font-display text-5xl font-black tracking-tight text-ink">Reports</h1>
+      <p className="mt-3 text-lg text-ink-muted">
         Every reviewed report, across every model, newest first. This is
         where the claims meet the record.
       </p>

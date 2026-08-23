@@ -141,3 +141,62 @@ dead ends, and things that surprised me, in the order they happened.
 
 - `npm run build` passes clean; data pages are correctly marked dynamic
   (`ƒ`), `/about` and `/admin/login` prerender as static (`○`).
+
+## 2026-08-23 — Design pivot after seeing the actual reference
+
+Showed the first pass to Augustine. Reaction: boring, reads as built for
+techies only. Should have asked for a visual reference up front instead of
+working from my own read of "dark data-console" — turns out the real
+inspiration was [modelrumor.com](https://modelrumor.com), which I hadn't
+seen. Went and looked at it properly before touching anything.
+
+What's actually doing the work on that site: near-black background, but
+every card carries a real brand-colored logo, so the page never reads as
+monochrome; huge tight-tracked Geist headlines; chunky rounded pill buttons
+and arrows; live engagement signals (view counts, "NEW" badges); and a
+genuinely funny, human voice ("based entirely on stupid twitter rumors").
+None of that is exotic — it's mostly confidence and color, not cleverness.
+
+What I'd built leaned the opposite way: one restrained gold accent, hairline
+rules, a printed-ticket motif, small mono type. Disciplined, but exactly the
+"quiet, techy, unapproachable" thing Augustine was pushing back on. Rebuilt
+the token system rather than patching it:
+
+- **Near-black background**, not navy. I'd avoided true near-black because
+  the frontend-design skill flags "near-black + one neon accent" as a
+  generic AI-design tell — but modelrumor.com *is* near-black and doesn't
+  read as generic, because the color comes from real content (the logos),
+  not a single accent doing all the work. The lesson wasn't "avoid dark,"
+  it was "don't make one accent color carry the whole page."
+- **Provider color badges** — a colored monogram tile (real brand color,
+  e.g. Anthropic's rust, OpenAI's teal, Google's blue) on every model row
+  and report card. This is the direct substitute for modelrumor's product
+  logos: I'm not reproducing anyone's trademarked logo, but every row now
+  has a real, distinct color instead of relying on gold everywhere.
+- **Onest** (heavy weight, tight tracking) replaced Big Shoulders for
+  display type — bigger, punchier, closer to modelrumor's scale. Also
+  dropped IBM Plex Sans and just use Onest at a lighter weight for body
+  text too, so it's a two-face system (Onest + JetBrains Mono for data)
+  instead of three — simpler, and the condensed "stamped ticket" face was
+  part of what read as print-formal rather than approachable.
+- **Rounded, chunky UI** — pill filter buttons and provider/task badges
+  instead of terminal `[ bracket ]` toggles and square chips.
+- **A "NEW" badge and a solid-pill report-count badge** instead of muted
+  gray mono text, for the same live/current feeling as modelrumor's view
+  counts.
+- Kept monospace tabular numerals for benchmark data (dates, indices,
+  prices) — that part wasn't the problem, and good data typography still
+  matters for a tool with real numbers in it.
+- Toned down the torn-ticket perforation motif rather than removing it —
+  it's still the CLAIM/REALITY divider on the model detail page, where it
+  actually carries meaning, but it's no longer repeated on every row, which
+  was contributing to the dense/dry feeling.
+- **Small bug caught in review**: my first pass at a "NEW" badge used the
+  database row's `createdAt`, which meant every seeded model showed NEW
+  simultaneously since they were all inserted today. Fixed to key off the
+  model's actual/predicted release date instead — semantically correct
+  either way, but it would have been a real bug once n8n starts inserting
+  batches of historical models at once.
+
+Re-verified all five pages plus the admin queue, desktop and mobile, after
+the rebuild. `npm run build` clean, no lint/type errors.

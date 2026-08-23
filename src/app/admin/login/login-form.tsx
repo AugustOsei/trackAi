@@ -11,7 +11,7 @@ export function LoginForm() {
   return (
     <form action={formAction} className="mt-8 space-y-4">
       <div>
-        <label htmlFor="password" className="font-data text-xs uppercase tracking-wider text-ink-muted">
+        <label htmlFor="password" className="font-display text-xs font-bold uppercase tracking-wider text-ink-muted">
           Password
         </label>
         <input
@@ -20,20 +20,20 @@ export function LoginForm() {
           type="password"
           required
           autoFocus
-          className="font-data mt-2 w-full border border-hairline bg-transparent px-3 py-2 text-ink outline-none focus-visible:border-gold"
+          className="font-data mt-2 w-full rounded-xl bg-surface px-4 py-3 text-ink outline-none ring-1 ring-transparent focus-visible:ring-gold"
         />
       </div>
       {state.error && (
-        <p className="font-data text-sm text-gold" role="alert">
+        <p className="font-display text-sm font-semibold text-gold" role="alert">
           {state.error}
         </p>
       )}
       <button
         type="submit"
         disabled={pending}
-        className="font-display bg-gold px-6 py-3 text-lg font-bold tracking-wide text-bg transition-opacity hover:opacity-90 disabled:opacity-50"
+        className="font-display rounded-full bg-gold px-7 py-3.5 text-lg font-black tracking-tight text-gold-fg transition-opacity hover:opacity-90 disabled:opacity-50"
       >
-        {pending ? "CHECKING…" : "ENTER"}
+        {pending ? "Checking…" : "Enter"}
       </button>
     </form>
   );

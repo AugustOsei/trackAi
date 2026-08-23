@@ -1,5 +1,6 @@
 import { getPendingReports } from "@/lib/queries";
 import { approveReport, rejectReport, logout } from "@/lib/actions";
+import { ProviderBadge } from "@/components/provider-badge";
 import { TaskTag } from "@/components/task-tag";
 import { formatDate, sourceDomain } from "@/lib/format";
 
@@ -12,14 +13,14 @@ export default async function AdminQueuePage() {
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-3xl font-bold text-ink">Review queue</h1>
+          <h1 className="font-display text-4xl font-black tracking-tight text-ink">Review queue</h1>
           <p className="font-data mt-1 text-sm text-ink-muted">
             {pending.length} pending
           </p>
         </div>
         <form action={logout}>
-          <button type="submit" className="font-data text-sm text-ink-muted hover:text-ink">
-            log out
+          <button type="submit" className="font-display text-sm font-bold text-ink-muted hover:text-ink">
+            Log out
           </button>
         </form>
       </div>
@@ -29,16 +30,12 @@ export default async function AdminQueuePage() {
       ) : (
         <div className="mt-8 space-y-4">
           {pending.map((report) => (
-            <div key={report.id} className="border border-hairline bg-surface p-5">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="font-display text-lg font-semibold text-ink">
-                    {report.model.name}
-                    <span className="font-data ml-2 text-xs font-normal text-ink-muted">
-                      {report.model.provider}
-                    </span>
-                  </p>
-                  <p className="mt-2 text-[15px] text-ink">{report.takeaway}</p>
+            <div key={report.id} className="rounded-2xl bg-surface p-5">
+              <div className="flex items-start gap-3">
+                <ProviderBadge provider={report.model.provider} size="md" />
+                <div className="min-w-0 flex-1">
+                  <p className="font-display text-lg font-bold text-ink">{report.model.name}</p>
+                  <p className="mt-1 text-[15px] text-ink">{report.takeaway}</p>
                 </div>
                 <TaskTag category={report.taskCategory} />
               </div>
@@ -56,11 +53,11 @@ export default async function AdminQueuePage() {
                 <span>submitted {formatDate(report.submittedAt)}</span>
               </div>
 
-              <div className="mt-4 flex gap-3">
+              <div className="mt-4 flex gap-2">
                 <form action={approveReport.bind(null, report.id)}>
                   <button
                     type="submit"
-                    className="font-data border border-gold px-4 py-1.5 text-sm text-gold hover:bg-gold hover:text-bg"
+                    className="font-display rounded-full bg-gold px-4 py-2 text-sm font-bold text-gold-fg hover:opacity-90"
                   >
                     Approve
                   </button>
@@ -68,7 +65,7 @@ export default async function AdminQueuePage() {
                 <form action={rejectReport.bind(null, report.id)}>
                   <button
                     type="submit"
-                    className="font-data border border-hairline px-4 py-1.5 text-sm text-ink-muted hover:border-ink-muted hover:text-ink"
+                    className="font-display rounded-full bg-surface-raised px-4 py-2 text-sm font-bold text-ink-muted hover:text-ink"
                   >
                     Reject
                   </button>

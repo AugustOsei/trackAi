@@ -45,6 +45,11 @@ export function sourceDomain(url: string): string {
   }
 }
 
+export function isRecent(value: Date, days = 10): boolean {
+  const ageMs = Date.now() - new Date(value).getTime();
+  return ageMs >= 0 && ageMs < days * 24 * 60 * 60 * 1000;
+}
+
 export const TASK_LABELS: Record<string, string> = {
   coding: "Coding",
   agentic: "Agentic",

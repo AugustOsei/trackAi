@@ -2,7 +2,6 @@ import Link from "next/link";
 import { getTimelineModels, getProviders } from "@/lib/queries";
 import { formatMonthLabel } from "@/lib/format";
 import { ModelRow } from "@/components/model-row";
-import { Perforation } from "@/components/perforation";
 import type { Model } from "@/db/schema";
 
 export const dynamic = "force-dynamic";
@@ -48,42 +47,47 @@ export default async function TimelinePage({
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
       <div className="max-w-2xl">
-        <h1 className="font-display text-4xl font-bold leading-[0.95] text-ink sm:text-5xl">
+        <h1 className="font-display text-5xl font-black leading-[0.92] tracking-tight text-ink sm:text-6xl">
           Every release.
           <br />
           <span className="text-gold">Every claim, tested.</span>
         </h1>
-        <p className="mt-4 text-ink-muted">
-          A timeline of AI model releases, each paired against independently
-          sourced reports of how the model actually performed.
+        <p className="mt-4 text-lg text-ink-muted">
+          Providers publish the benchmark. We publish what happened when
+          someone actually tried it.
         </p>
       </div>
 
-      <div className="font-data mt-10 flex flex-wrap items-center gap-x-1 gap-y-2 border-y border-hairline py-3 text-sm">
+      <div className="mt-10 flex flex-wrap items-center gap-2">
         {STATUSES.map((s) => (
           <Link
             key={s.value}
             href={hrefFor(s.value, provider)}
-            className={`px-2 py-1 ${
-              status === s.value ? "bg-gold text-bg" : "text-ink-muted hover:text-ink"
+            className={`font-display rounded-full px-4 py-2 text-sm font-bold transition-colors ${
+              status === s.value
+                ? "bg-gold text-gold-fg"
+                : "bg-surface text-ink-muted hover:text-ink"
             }`}
           >
-            [ {s.label.toLowerCase()} ]
+            {s.label}
           </Link>
         ))}
-        <span className="mx-2 text-hairline">·</span>
-        <span className="text-ink-faint">provider:</span>
+        <span className="mx-1 h-6 w-px bg-hairline" />
         <Link
           href={hrefFor(status)}
-          className={`px-2 py-1 ${!provider ? "text-gold" : "text-ink-muted hover:text-ink"}`}
+          className={`font-display rounded-full px-4 py-2 text-sm font-bold transition-colors ${
+            !provider ? "bg-surface-raised text-ink" : "bg-surface text-ink-muted hover:text-ink"
+          }`}
         >
-          all
+          All providers
         </Link>
         {providers.map((p) => (
           <Link
             key={p}
             href={hrefFor(status, p)}
-            className={`px-2 py-1 ${provider === p ? "text-gold" : "text-ink-muted hover:text-ink"}`}
+            className={`font-display rounded-full px-4 py-2 text-sm font-bold transition-colors ${
+              provider === p ? "bg-surface-raised text-ink" : "bg-surface text-ink-muted hover:text-ink"
+            }`}
           >
             {p}
           </Link>
@@ -91,19 +95,20 @@ export default async function TimelinePage({
       </div>
 
       {models.length === 0 ? (
-        <p className="font-data mt-10 text-sm text-ink-muted">
+        <p className="mt-10 text-sm text-ink-muted">
           Nothing matches those filters yet.
         </p>
       ) : (
         Array.from(groups.entries()).map(([month, monthModels]) => (
-          <section key={month} className="mt-8">
-            <h2 className="font-data text-xs font-semibold tracking-[0.15em] text-gold">
+          <section key={month} className="mt-10">
+            <h2 className="font-display px-3 text-xs font-black tracking-[0.15em] text-ink-faint sm:px-4">
               {month}
             </h2>
-            <Perforation className="mt-2" />
-            <div className="divide-y divide-hairline">
+            <div className="mt-2 border-t border-hairline">
               {monthModels.map((model) => (
-                <ModelRow key={model.id} model={model} />
+                <div key={model.id} className="border-b border-hairline">
+                  <ModelRow model={model} />
+                </div>
               ))}
             </div>
           </section>
