@@ -1,35 +1,53 @@
 {
-  "name": "trackai — provider claim sync (CLAIM layer)",
-  "settings": { "executionOrder": "v1" },
+  "name": "trackai \u2014 provider claim sync (CLAIM layer)",
+  "settings": {
+    "executionOrder": "v1"
+  },
   "nodes": [
     {
       "parameters": {
         "rule": {
-          "interval": [{ "field": "days", "triggerAtHour": 6, "triggerAtMinute": 0 }]
+          "interval": [
+            {
+              "field": "days",
+              "triggerAtHour": 6,
+              "triggerAtMinute": 0
+            }
+          ]
         }
       },
       "id": "schedule",
       "name": "Daily 06:00",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [-380, 0]
+      "position": [
+        -380,
+        0
+      ]
     },
     {
       "parameters": {
-        "url": "={{ $env.TRACKAI_BASE_URL }}/api/ingest/models",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            { "name": "Authorization", "value": "=Bearer {{ $env.TRACKAI_INGEST_TOKEN }}" }
-          ]
+        "url": "https://trackai.theaugustdispatch.com/api/ingest/models",
+        "options": {
+          "timeout": 30000
         },
-        "options": { "timeout": 30000 }
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "id": "get-models",
       "name": "GET tracked models",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [-160, 0]
+      "position": [
+        -160,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "RgekZWiaJvwenceq",
+          "name": "trackai \u2014 Ingest token"
+        }
+      }
     },
     {
       "parameters": {
@@ -39,7 +57,10 @@
       "name": "Models missing a claim",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [60, 0]
+      "position": [
+        60,
+        0
+      ]
     },
     {
       "parameters": {
@@ -48,21 +69,39 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "x-api-key", "value": "={{ $env.ANTHROPIC_API_KEY }}" },
-            { "name": "anthropic-version", "value": "2023-06-01" },
-            { "name": "content-type", "value": "application/json" }
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({\n  model: 'claude-opus-5',\n  max_tokens: 2048,\n  tools: [\n    { type: 'web_search_20260209', name: 'web_search', max_uses: 4 },\n    {\n      name: 'record_provider_claim',\n      description: \"Record what the provider's own announcement says about this model.\",\n      strict: true,\n      input_schema: {\n        type: 'object',\n        properties: {\n          found: { type: 'boolean', description: 'True only if you located the provider’s own announcement page for this exact model.' },\n          announcementUrl: { type: 'string', description: 'URL of the provider’s own post. Empty string if not found.' },\n          summary: { type: 'string', description: 'One or two sentences stating what the provider says shipped and improved. Empty string if not found.' },\n          claimedBenchmarks: {\n            type: 'array',\n            maxItems: 6,\n            items: {\n              type: 'object',\n              properties: {\n                label: { type: 'string' },\n                value: { type: 'string' }\n              },\n              required: ['label','value'],\n              additionalProperties: false\n            }\n          }\n        },\n        required: ['found','announcementUrl','summary','claimedBenchmarks'],\n        additionalProperties: false\n      }\n    }\n  ],\n  system: \"You record what an AI lab published about its own model, for a tracker that shows provider claims next to independent user reports.\\n\\nYou are STRICTLY EXTRACTIVE. This text publishes without human review, so accuracy matters more than completeness:\\n\\n- Use ONLY the provider's own announcement, docs, or model card. Never a news article, blog roundup, benchmark aggregator, or third-party analysis.\\n- Report only figures printed on that page, with the provider's own benchmark names. Never convert, estimate, average, or infer a number.\\n- The summary must restate what the provider says, in plain words. Do not evaluate, rank, praise, or compare to other models.\\n- If you cannot find the provider's OWN page for this exact model, set found=false and leave the other fields empty. A missing claim is fine; a wrong one is not.\",\n  messages: [{ role: 'user', content: 'Find the official announcement from ' + $json.provider + ' for their model \"' + $json.name + '\", and record what it says.' }]\n}) }}",
-        "options": { "timeout": 180000 }
+        "jsonBody": "={{ JSON.stringify({\n  model: 'claude-opus-5',\n  max_tokens: 2048,\n  tools: [\n    { type: 'web_search_20260209', name: 'web_search', max_uses: 4 },\n    {\n      name: 'record_provider_claim',\n      description: \"Record what the provider's own announcement says about this model.\",\n      strict: true,\n      input_schema: {\n        type: 'object',\n        properties: {\n          found: { type: 'boolean', description: 'True only if you located the provider\u2019s own announcement page for this exact model.' },\n          announcementUrl: { type: 'string', description: 'URL of the provider\u2019s own post. Empty string if not found.' },\n          summary: { type: 'string', description: 'One or two sentences stating what the provider says shipped and improved. Empty string if not found.' },\n          claimedBenchmarks: {\n            type: 'array',\n            maxItems: 6,\n            items: {\n              type: 'object',\n              properties: {\n                label: { type: 'string' },\n                value: { type: 'string' }\n              },\n              required: ['label','value'],\n              additionalProperties: false\n            }\n          }\n        },\n        required: ['found','announcementUrl','summary','claimedBenchmarks'],\n        additionalProperties: false\n      }\n    }\n  ],\n  system: \"You record what an AI lab published about its own model, for a tracker that shows provider claims next to independent user reports.\\n\\nYou are STRICTLY EXTRACTIVE. This text publishes without human review, so accuracy matters more than completeness:\\n\\n- Use ONLY the provider's own announcement, docs, or model card. Never a news article, blog roundup, benchmark aggregator, or third-party analysis.\\n- Report only figures printed on that page, with the provider's own benchmark names. Never convert, estimate, average, or infer a number.\\n- The summary must restate what the provider says, in plain words. Do not evaluate, rank, praise, or compare to other models.\\n- If you cannot find the provider's OWN page for this exact model, set found=false and leave the other fields empty. A missing claim is fine; a wrong one is not.\",\n  messages: [{ role: 'user', content: 'Find the official announcement from ' + $json.provider + ' for their model \"' + $json.name + '\", and record what it says.' }]\n}) }}",
+        "options": {
+          "timeout": 180000
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "id": "research",
       "name": "Find provider announcement",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [280, 0]
+      "position": [
+        280,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "n7P86OuiUUm35DEs",
+          "name": "trackai \u2014 Anthropic API"
+        }
+      }
     },
     {
       "parameters": {
@@ -72,35 +111,95 @@
       "name": "Keep sourced claims",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [500, 0]
+      "position": [
+        500,
+        0
+      ]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.TRACKAI_BASE_URL }}/api/ingest/models",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            { "name": "Authorization", "value": "=Bearer {{ $env.TRACKAI_INGEST_TOKEN }}" }
-          ]
-        },
+        "url": "https://trackai.theaugustdispatch.com/api/ingest/models",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ models: $json.models }) }}",
-        "options": { "timeout": 30000 }
+        "options": {
+          "timeout": 30000
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "id": "post",
       "name": "POST /api/ingest/models",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [720, 0]
+      "position": [
+        720,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "RgekZWiaJvwenceq",
+          "name": "trackai \u2014 Ingest token"
+        }
+      }
     }
   ],
   "connections": {
-    "Daily 06:00": { "main": [[{ "node": "GET tracked models", "type": "main", "index": 0 }]] },
-    "GET tracked models": { "main": [[{ "node": "Models missing a claim", "type": "main", "index": 0 }]] },
-    "Models missing a claim": { "main": [[{ "node": "Find provider announcement", "type": "main", "index": 0 }]] },
-    "Find provider announcement": { "main": [[{ "node": "Keep sourced claims", "type": "main", "index": 0 }]] },
-    "Keep sourced claims": { "main": [[{ "node": "POST /api/ingest/models", "type": "main", "index": 0 }]] }
+    "Daily 06:00": {
+      "main": [
+        [
+          {
+            "node": "GET tracked models",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET tracked models": {
+      "main": [
+        [
+          {
+            "node": "Models missing a claim",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Models missing a claim": {
+      "main": [
+        [
+          {
+            "node": "Find provider announcement",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find provider announcement": {
+      "main": [
+        [
+          {
+            "node": "Keep sourced claims",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Keep sourced claims": {
+      "main": [
+        [
+          {
+            "node": "POST /api/ingest/models",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   }
 }

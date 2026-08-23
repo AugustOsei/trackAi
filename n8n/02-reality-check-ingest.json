@@ -27,19 +27,12 @@
     },
     {
       "parameters": {
-        "url": "={{ $env.TRACKAI_BASE_URL }}/api/ingest/models",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "=Bearer {{ $env.TRACKAI_INGEST_TOKEN }}"
-            }
-          ]
-        },
+        "url": "https://trackai.theaugustdispatch.com/api/ingest/models",
         "options": {
           "timeout": 30000
-        }
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "id": "get-models",
       "name": "GET tracked models",
@@ -48,7 +41,13 @@
       "position": [
         -160,
         0
-      ]
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "RgekZWiaJvwenceq",
+          "name": "trackai \u2014 Ingest token"
+        }
+      }
     },
     {
       "parameters": {
@@ -117,10 +116,6 @@
         "headerParameters": {
           "parameters": [
             {
-              "name": "x-api-key",
-              "value": "={{ $env.ANTHROPIC_API_KEY }}"
-            },
-            {
               "name": "anthropic-version",
               "value": "2023-06-01"
             },
@@ -135,7 +130,9 @@
         "jsonBody": "={{ JSON.stringify({\n  model: 'claude-haiku-4-5',\n  max_tokens: 1024,\n  system: \"You classify Hacker News comments for trackai, a tracker that pairs AI model benchmark claims against real-world reports.\\n\\nYou will be given one comment that mentions a named model. Decide whether it is a FIRST-HAND account of someone actually using that model on a real task.\\n\\nMark usable=false when the comment is: speculation, pricing or business chat, a complaint about the company rather than the model, a benchmark score quoted secondhand, or only a passing mention.\\n\\nIf usable, write the takeaway as ONE sentence of AT MOST 200 CHARACTERS. This is a hard limit; longer text gets truncated mid-word on the site.\\n\\nWrite it as a finding, not as reportage. Start with what the model did. Never begin with 'User reports', 'The user', 'Someone', or 'This comment'.\\n\\nGood: 'Ported a 40k-line Django app to FastAPI with routing right first pass, but kept assuming an async DB driver and needed three corrections.'\\nBad: 'User reports that they used the model to convert a large Django application...'\\n\\nParaphrase only \u2014 never quote or reuse the comment's wording. Be specific and neutral, and keep the limitation or failure if there was one; do not make it sound more positive than it was.\",\n  tools: [{\n    name: 'record_reality_check',\n    description: 'Record whether this comment is a usable first-hand report, and if so summarise it.',\n    strict: true,\n    input_schema: {\n      type: 'object',\n      properties: {\n        usable: { type: 'boolean', description: 'True only for a first-hand account of using the model on a real task.' },\n        taskCategory: { type: 'string', enum: ['coding','agentic','vision','writing','other'] },\n        takeaway: { type: 'string', description: 'One sentence, 10-200 chars, paraphrased, no reportage preamble. Empty string when usable is false.' }\n      },\n      required: ['usable','taskCategory','takeaway'],\n      additionalProperties: false\n    }\n  }],\n  tool_choice: { type: 'tool', name: 'record_reality_check' },\n  messages: [{ role: 'user', content: 'Model being discussed: ' + $json.modelName + '\\n\\nComment:\\n' + $json.text }]\n}) }}",
         "options": {
           "timeout": 120000
-        }
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "id": "summarize",
       "name": "Claude summarize",
@@ -144,7 +141,13 @@
       "position": [
         720,
         0
-      ]
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "n7P86OuiUUm35DEs",
+          "name": "trackai \u2014 Anthropic API"
+        }
+      }
     },
     {
       "parameters": {
@@ -162,22 +165,15 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.TRACKAI_BASE_URL }}/api/ingest/reports",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "=Bearer {{ $env.TRACKAI_INGEST_TOKEN }}"
-            }
-          ]
-        },
+        "url": "https://trackai.theaugustdispatch.com/api/ingest/reports",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ reports: $json.reports }) }}",
         "options": {
           "timeout": 30000
-        }
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "id": "post-reports",
       "name": "POST /api/ingest/reports",
@@ -186,7 +182,13 @@
       "position": [
         1160,
         0
-      ]
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "RgekZWiaJvwenceq",
+          "name": "trackai \u2014 Ingest token"
+        }
+      }
     }
   ],
   "connections": {

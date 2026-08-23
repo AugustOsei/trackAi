@@ -826,3 +826,31 @@ dropped before reaching the review queue.
 
 Two test calls cost about $0.003 total, which is a reasonable price for
 catching a defect that would otherwise have shipped unattended.
+
+## 2026-08-23 — Workflows imported into the live n8n instance
+
+Both workflows are on `n8n.augustwheel.com`, **inactive**. The instance runs
+Augustine's real business automations (FSKY order/subscribe, a photo-studio
+receptionist), so: created only, nothing existing read, modified, or
+activated — verified by listing all 12 workflows afterwards and confirming
+the original 10 kept their exact active/inactive states.
+
+**Dropped `$env` in favour of n8n credentials.** The workflows originally read
+`ANTHROPIC_API_KEY` / `TRACKAI_INGEST_TOKEN` / `TRACKAI_BASE_URL` from the n8n
+instance environment — which would have meant SSH-ing into the Hetzner box to
+set them, i.e. root on a machine running unrelated production automations, to
+configure two secrets.
+
+Instead: both secrets are now n8n `httpHeaderAuth` credentials created over the
+API (Anthropic as `x-api-key`, ingest as `Authorization: Bearer …`), and the
+base URL is simply hardcoded to the eventual domain. Net effect — secrets live
+in n8n's encrypted credential store rather than in workflow JSON or a shell
+env file, the workflow export contains no secrets at all and is safe to commit,
+and SSH access was never needed. Worth noting because the original plan
+assumed SSH was required for this step; it wasn't.
+
+**Still blocked on deployment, by design.** Every node runs *except* the two
+that call `trackai.theaugustdispatch.com`, which doesn't exist yet. So the
+Anthropic-facing halves can be tested now, and the ingest halves light up the
+moment Vercel is live. No config change needed at that point — the URL is
+already correct.
