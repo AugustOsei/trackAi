@@ -60,6 +60,7 @@ export function MilestoneTimeline({ models }: { models: TimelineModel[] }) {
                     color={style.color}
                     onLeft={onLeft}
                     tiltDeg={onLeft ? -1.5 : 1.5}
+                    index={i}
                   />
                 </div>
               </div>

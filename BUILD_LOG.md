@@ -370,3 +370,49 @@ something to desync.
 
 `npm run build` clean. Verified the expand interaction and the tilt on
 both breakpoints after the fix.
+
+## 2026-08-23 — Fifth pass: strip the card back, animate on load not click
+
+Two more specific notes: the collapsed card was still showing too much
+(provider text, benchmark line, report count) when modelrumor's actual
+cards show just the icon and the model name; and the only motion that
+existed — the hover wobble, the rotate-to-flat on expand — only ever
+happened in response to an interaction, not automatically.
+
+**Cut the collapsed card down to icon + name** (plus the small status dot
+and NEW badge, since those are load-bearing signal, not decoration).
+Everything else that was on the card before — provider, date, benchmark
+snippet — moved into the expand panel, which already had the blurb and
+report previews from last round. The collapsed state is now close to a
+compact pill rather than an info card, closer to what was actually being
+pointed at.
+
+**Animation that plays on page load, verified, not assumed.** Split the
+motion into two independently-timed CSS keyframe animations instead of
+reusing the interaction-driven transitions from last round:
+`timeline-card-enter` (fade + rise, on the card wrapper) and
+`timeline-icon-pop` (a spring-overshoot scale+rotate, on the badge, delayed
+~150ms after its card) — each with a per-index stagger
+(`min(index * 70ms, 500ms)`) so cards arrive in a cascade down the page
+rather than all at once. Deliberately plain `animation`, not
+`animation-timeline: view()` this time — the scroll-linked version from
+round 4 only plays once an element scrolls into view, which is exactly
+the "click/scroll-gated" behavior being pushed back on; a normal
+`animation` with a delay just plays when the element mounts, which for a
+server-rendered page is effectively "on load."
+
+Confirmed this actually fires without interaction using the Web Animations
+API (`element.getAnimations()`) rather than trusting a screenshot: reloaded
+and queried mid-flight, got `playState: "running"`, `currentTime: 0` on an
+animation nobody had touched — real proof, not an assumption from how the
+code reads.
+
+Kept the two transform concerns on separate elements (entrance animation
+on the outer wrapper, resting tilt + expand-to-flat on the inner card,
+hover wobble on the icon) specifically to avoid the animation's held
+end-state fighting the interaction-driven inline-style transform on the
+same property — same class of bug as the duplicate-card issue from last
+round, just avoided up front this time instead of hit and fixed.
+
+`npm run build` clean. Verified both breakpoints; expand-to-reveal still
+works with the trimmed-down collapsed state.
