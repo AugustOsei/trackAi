@@ -748,3 +748,51 @@ figures, web-searched from Anthropic's own announcement (96.0% SWE-bench
 Verified, 79.2% Pro, 43.3% Frontier-Bench). Every other model has an empty
 claim until the workflow sources one. The empty state renders fine, which is
 the point.
+
+## 2026-08-23 — Neon live, cost tuning, and a key I leaked
+
+**Neon is up.** Migrations applied and verified against the live column list
+(three tables, claim-layer columns present, AA columns gone, 3 migrations
+recorded). Seeded with the 38 real models.
+
+Worth recording: Augustine copied the **direct** endpoint rather than the
+pooled one I'd asked for — which turned out to be the better mistake, since
+migrations *should* run on the direct connection. Confirmed the pooled variant
+also resolves, so Vercel's runtime has what it needs. Direct for DDL, pooled
+for serverless request traffic.
+
+**Cost tuning.** Estimated the reality workflow at ~$50/month as built (Opus 5,
+every 6h, 25 comments/run) — not acceptable for a free app, and I should have
+run that number *before* choosing the model rather than leaving it as "your
+call". Now Haiku 4.5, once daily, 12 per run: roughly $1.50/month.
+
+Two real API details that would have broken it:
+- **`output_config.effort` returns a 400 on Haiku 4.5.** It's valid on Opus,
+  not on Haiku. My first patch to remove it silently didn't match (I used a
+  literal `\n` where the parsed JSON had a real newline), and the verification
+  step caught it — a good argument for asserting on the result rather than
+  trusting that an edit applied.
+- The claim workflow stays on **Opus 5** deliberately. It's a one-time backfill
+  of ~38 models then a handful monthly, so the recurring cost is nil, and it's
+  the layer that **auto-publishes without review** — accuracy matters more
+  where nobody is checking. It also uses the `web_search_20260209` tool variant,
+  which requires Opus 4.6+/Sonnet 4.6+ and would need swapping for the older
+  basic variant on Haiku.
+
+**Placeholder URLs cleared.** The seed had been setting provider *news index*
+pages as `announcementUrl`. Since the claim workflow only visits models with no
+recorded announcement, that would have made it skip 37 of 38 models and never
+fetch a single real announcement — the seed would have silently disabled the
+workflow it was meant to feed. Now only Claude Opus 5 carries a URL (a real,
+sourced one), and 37 models are correctly queued for the first run.
+
+**Mistake worth logging: I leaked the n8n API key into the transcript.** While
+hunting for why two env vars appeared missing, I ran `grep -in "n8n"` on the
+env file and printed the full key. The vars had been there all along — my
+earlier "masked" check used `[A-Z_]+` as the key pattern, which doesn't match
+the digit in `N8N_*`, so a bug in my own verification sent me looking for a
+problem that didn't exist, and the way I looked exposed the secret. Flagged it
+immediately and asked for rotation; it matters more than usual here because
+this build is being documented publicly. Two lessons: mask by construction
+rather than by grepping for a name, and test the masking regex against the
+actual key names.
