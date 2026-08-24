@@ -890,3 +890,60 @@ Also added a non-fatal warning when the production connection string lacks
 `-pooler`, since the direct endpoint works fine until serverless connection
 churn exhausts it — a failure that would appear later and under load, i.e. the
 hardest time to diagnose it.
+
+## 2026-08-23 — Post-deploy audit, and approving without a password
+
+Site is live on `trackai.theaugustdispatch.com`: CNAME resolving to Vercel,
+health green, GitHub connected so a push to `main` redeploys in ~30s. The audit
+turned up one thing that mattered and several that didn't: **both n8n workflows
+were imported but never switched on**, so nothing would ever have updated.
+
+- **Correction to my own note**: the README claimed the reality workflow ran
+  `claude-opus-5` every 6 hours. Both were wrong — it had already been tuned to
+  Haiku, and the trigger is daily. Fixed the doc rather than the code.
+
+- **Timezones were implicit.** Neither workflow set one, so "Daily 06:00" meant
+  06:00 in the n8n *host's* timezone (UTC), not mine. The trigger fires daily
+  either way, which is exactly why this survives review: nothing looks broken,
+  the hour is just quietly wrong. Both now carry `America/Denver` explicitly.
+
+- **Claim sync moved to Haiku 4.5.** It only processes models with no recorded
+  announcement, so once backfilled it's near-idle; the cost argument was thin
+  either way, but the constraint that matters is in the prompt, not the model.
+
+### Approving by email instead of by password
+
+The review queue was reachable only by typing a shared password into `/admin`.
+Replaced the daily path in with a signed link mailed each morning at 08:00 —
+after the 07:00 ingest, so the queue already has that morning's haul. No email
+is sent when nothing is pending; a daily email that's usually empty is how you
+teach yourself to ignore it.
+
+Three things I'd have got wrong without thinking about them:
+
+- **The token key is *derived* from `ADMIN_SESSION_SECRET`, not equal to it.**
+  A session cookie and a moderation token are both HMACs over a timestamp. Sign
+  them with the same key and they're interchangeable — a review link forwarded
+  out of an inbox could be replayed as an admin login. One `createHmac` with a
+  domain string rules that out, and needs no new environment variable.
+
+- **Opening the link must not change anything.** This is the one that would
+  have bitten hardest. Mail clients and security scanners fetch every URL in an
+  email *before* the recipient sees it. An approve-by-GET link would have let
+  Gmail's own scanner publish the entire queue on delivery. So the link is a
+  read-only page and approving is a separate POST — one extra tap, and the
+  difference between a review queue and an auto-publisher.
+
+- **Decisions must not replay.** The update is scoped to rows still `pending`,
+  so clicking an old link twice is a no-op rather than a reversal.
+
+The honest trade-off: for 72 hours the mailbox is part of the security
+boundary. The blast radius is moderation only — no database, no settings,
+nothing published that a person didn't click. Against a shared password that
+never expires and gets typed into a form, that reads like a net gain.
+
+`/admin` stays as the fallback, and both routes now render one shared
+`ReviewQueue` component so they can't drift apart.
+
+Also found: `.env.local.example` was being swallowed by the blanket `.env*`
+gitignore rule, so the file the README tells you to `cp` was never in the repo.
