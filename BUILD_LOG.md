@@ -947,3 +947,95 @@ never expires and gets typed into a form, that reads like a net gain.
 
 Also found: `.env.local.example` was being swallowed by the blanket `.env*`
 gitignore rule, so the file the README tells you to `cp` was never in the repo.
+
+## 2026-08-23 — A richer reports column, and one source that turned out to be dead
+
+Augustine's ask: the reality layer only ever read Hacker News, which is one
+community's blind spots wearing a claim of "how AI models actually perform."
+Widen it, and make where each report came from visible — that visibility is
+meant to be the thing that separates trackai from every other tracker, not a
+footnote.
+
+**Sources chosen by testing live, not by assumption.** Probed HN Algolia,
+Reddit, Lobste.rs, several Discourse forums, GitHub search, Stack Exchange,
+and the YouTube and X APIs before writing any collector:
+
+- **Discourse forums** (Cursor, OpenAI community, Hugging Face) turned out to
+  be the best signal of anything tested — people post there while actively
+  using the model on their own work. `/search.json` is disallowed in all
+  three `robots.txt` files, so the collector uses `/latest.json` + polling
+  `/t/<id>.json` instead — more requests, fully compliant.
+- **YouTube** — comments only. Transcripts aren't in the official Data API
+  and scraping them breaks YouTube's terms, so this reads reactions to a
+  video rather than what a reviewer says in it. Noisier than forums, still
+  useful.
+- **Rejected after testing, not by assumption**: X/Twitter ($200/month API
+  floor), GitHub (`"opus" in:body` returns 340k results, dominated by
+  dependency-bump PRs, not model reports), Stack Overflow (wrong kind of
+  content — "how do I fix this code," not "how did this model perform").
+
+**The classifier prompt moved into the app**, served by
+`/api/ingest/classifier` and fetched by every collector at run time, rather
+than living as four separate inline copies inside the n8n workflow JSON. Four
+copies is exactly the kind of thing that drifts — and a drifted prompt would
+mean "reviewed report" silently means something different depending on which
+workflow happened to find it, which undermines the whole point of showing
+source tags: they'd be comparing unlike bars, not just unlike places.
+`?source=` tailors one paragraph on how much benefit of the doubt that source
+has earned (a Cursor forum post starts with more trust than a YouTube
+comment); the bar for *usable* stays identical across all four.
+
+**A post must name the tracked model itself to become a candidate** —
+inheriting the model from a thread's title would attribute every reply in a
+busy thread to whatever the title happened to say, which is exactly the kind
+of silent misattribution that would be invisible until someone checked a
+source link and found it didn't match.
+
+`source_type` widened from `hn | manual` to `hn | reddit | youtube | forum |
+manual` via an additive migration. `forum` stays coarse rather than naming
+each Discourse instance, because the specific forum is already recoverable
+from `sourceUrl` — so a fifth Discourse forum needs no migration, just a
+`FORUM_NAMES` entry for its display label.
+
+### Reddit: built, then found to be structurally blocked
+
+Wrote the collector assuming the normal path — register a Reddit "script" app
+at `reddit.com/prefs/apps`, get a `client_id`/`client_secret`, done. Augustine
+hit it first: the form accepts the reCAPTCHA, "creates" the app, and silently
+reloads to the same blank form. Every browser, every attempt, no error text
+anywhere — which reads exactly like a client-side bug and isn't one.
+
+Reddit closed self-service API app creation in November 2025 under what they
+call the "Responsible Builder Policy" — the same policy document the broken
+form itself links to at the bottom of the page. Instead of retiring
+`prefs/apps` cleanly, they left it running in a state that looks functional
+and isn't: the captcha works, the submit works, there is simply no code path
+left that successfully creates a new app. New API access now requires a
+manual application Reddit may or may not approve, with reports of near-zero
+approval for small non-commercial projects.
+
+Net effect: **the Reddit collector is code-complete and imported into n8n,
+but paused with no credential to attach and no self-serve way to get one.**
+Nothing to fix on trackai's side — this is a platform closing a door, not a
+bug. Decision: ship forums and YouTube now, leave Reddit inactive rather than
+delete it. `source_type` already carries `reddit`; if Reddit's manual review
+ever approves this project, activating it is a five-minute credential swap,
+not a rebuild.
+
+### Two things the audit caught before they shipped
+
+- **The widening migration never ran against production.** It had been
+  applied locally days ago but the `db:migrate` step against Neon was never
+  actually run, and the deploying commit hadn't been pushed either — so the
+  new code and the new schema were both sitting finished and both sitting
+  undeployed. Would have surfaced as a 500 on the first `sourceType: 'forum'`
+  write: the app-level Zod schema already accepted the value, but the
+  Postgres enum itself didn't have it yet, so the request would validate and
+  then fail at the database. Migrated production (additive only — new enum
+  values, no data touched) before pushing.
+- **This build log had gone three commits stale.** The schema, the
+  collectors, and the classifier contract all shipped without an entry here
+  — a gap that would have left this exact section of the post with nothing
+  to draw from. Caught while reconstructing what had changed during a
+  context-compaction gap in the session; logged as one entry covering all
+  three rather than backfilling each commit separately.
