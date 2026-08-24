@@ -9,7 +9,11 @@
       "parameters": {
         "rule": {
           "interval": [
-            { "field": "days", "triggerAtHour": 5, "triggerAtMinute": 45 }
+            {
+              "field": "days",
+              "triggerAtHour": 5,
+              "triggerAtMinute": 45
+            }
           ]
         }
       },
@@ -17,12 +21,17 @@
       "name": "Daily 05:45",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [-440, 0]
+      "position": [
+        -440,
+        0
+      ]
     },
     {
       "parameters": {
         "url": "https://trackai.theaugustdispatch.com/api/ingest/rumor-classifier",
-        "options": { "timeout": 30000 },
+        "options": {
+          "timeout": 30000
+        },
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth"
       },
@@ -30,42 +39,68 @@
       "name": "Rumor classifier contract",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [-220, -180],
+      "position": [
+        -220,
+        -180
+      ],
       "credentials": {
-        "httpHeaderAuth": { "id": "RgekZWiaJvwenceq", "name": "trackai — Ingest token" }
+        "httpHeaderAuth": {
+          "id": "RgekZWiaJvwenceq",
+          "name": "trackai — Ingest token"
+        }
       }
     },
     {
-      "parameters": { "url": "https://techcrunch.com/category/artificial-intelligence/feed/" },
+      "parameters": {
+        "url": "https://techcrunch.com/category/artificial-intelligence/feed/"
+      },
       "id": "feed-techcrunch",
       "name": "TechCrunch AI feed",
       "type": "n8n-nodes-base.rssFeedRead",
       "typeVersion": 1.1,
-      "position": [-220, 0]
+      "position": [
+        -220,
+        0
+      ]
     },
     {
-      "parameters": { "url": "https://venturebeat.com/category/ai/feed" },
+      "parameters": {
+        "url": "https://venturebeat.com/category/ai/feed"
+      },
       "id": "feed-venturebeat",
       "name": "VentureBeat AI feed",
       "type": "n8n-nodes-base.rssFeedRead",
       "typeVersion": 1.1,
-      "position": [-220, 140]
+      "position": [
+        -220,
+        140
+      ]
     },
     {
-      "parameters": { "url": "https://www.qbitai.com/feed" },
+      "parameters": {
+        "url": "https://www.qbitai.com/feed"
+      },
       "id": "feed-qbitai",
       "name": "QbitAI feed (China)",
       "type": "n8n-nodes-base.rssFeedRead",
       "typeVersion": 1.1,
-      "position": [-220, 280]
+      "position": [
+        -220,
+        280
+      ]
     },
     {
-      "parameters": { "numberInputs": 3 },
+      "parameters": {
+        "numberInputs": 3
+      },
       "id": "merge",
       "name": "Combine feeds",
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
-      "position": [0, 140]
+      "position": [
+        0,
+        140
+      ]
     },
     {
       "parameters": {
@@ -75,7 +110,10 @@
       "name": "Cap + build candidates",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [220, 140]
+      "position": [
+        220,
+        140
+      ]
     },
     {
       "parameters": {
@@ -84,14 +122,22 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "anthropic-version", "value": "2023-06-01" },
-            { "name": "content-type", "value": "application/json" }
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({\n  model: $('Rumor classifier contract').first().json.model,\n  max_tokens: $('Rumor classifier contract').first().json.maxTokens,\n  system: $('Rumor classifier contract').first().json.system,\n  tools: [$('Rumor classifier contract').first().json.tool],\n  tool_choice: { type: 'tool', name: 'record_model_rumors' },\n  messages: [{ role: 'user', content: 'Article published ' + $json.pubDate + '\\nTitle: ' + $json.title + '\\n\\n' + $json.snippet }]\n}) }}",
-        "options": { "timeout": 60000 },
+        "options": {
+          "timeout": 60000
+        },
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth"
       },
@@ -99,20 +145,29 @@
       "name": "Claude classify",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [440, 140],
+      "position": [
+        440,
+        140
+      ],
       "credentials": {
-        "httpHeaderAuth": { "id": "n7P86OuiUUm35DEs", "name": "trackai — Anthropic API" }
+        "httpHeaderAuth": {
+          "id": "n7P86OuiUUm35DEs",
+          "name": "trackai — Anthropic API"
+        }
       }
     },
     {
       "parameters": {
-        "jsCode": "// Pull the forced tool call out of each response and flatten every\n// article's rumors[] into one flat list. Most articles naming zero\n// qualifying models is the expected, normal result, not a failure.\nconst candidates = $('Cap + build candidates').all();\nconst rumors = [];\n\nconst items = $input.all();\nfor (let i = 0; i < items.length; i++) {\n  const src = candidates[i]?.json;\n  if (!src) continue;\n\n  const block = (items[i].json.content ?? []).find((b) => b.type === 'tool_use');\n  const result = block?.input;\n  if (!result || !Array.isArray(result.rumors)) continue;\n\n  for (const r of result.rumors) {\n    const slug = String(r.slug ?? '').trim();\n    const name = String(r.name ?? '').trim();\n    const provider = String(r.provider ?? '').trim();\n    const summary = String(r.summary ?? '').trim();\n    if (!slug || !name || !provider || summary.length < 10) continue;\n\n    // Validated rather than trusted — one malformed date would otherwise\n    // fail Zod validation for the entire batch on the receiving end, not\n    // just this one rumor.\n    const rawDate = String(r.predictedDate ?? '').trim();\n    const predictedDate = /^\\d{4}-\\d{2}-\\d{2}$/.test(rawDate) ? rawDate : null;\n\n    rumors.push({\n      slug,\n      name,\n      provider,\n      summary: summary.slice(0, 500),\n      sourceUrl: src.link,\n      ...(predictedDate ? { predictedDate } : {}),\n    });\n  }\n}\n\nif (!rumors.length) return [];\nreturn [{ json: { rumors } }];"
+        "jsCode": "// Pull the forced tool call out of each response and flatten every\n// article's rumors[] into one flat list. Most articles naming zero\n// qualifying models is the expected, normal result, not a failure.\nconst candidates = $('Cap + build candidates').all();\nconst rumors = [];\n\nconst items = $input.all();\nfor (let i = 0; i < items.length; i++) {\n  const src = candidates[i]?.json;\n  if (!src) continue;\n\n  const block = (items[i].json.content ?? []).find((b) => b.type === 'tool_use');\n  const result = block?.input;\n  if (!result || !Array.isArray(result.rumors)) continue;\n\n  for (const r of result.rumors) {\n    const slug = String(r.slug ?? '').trim();\n    const name = String(r.name ?? '').trim();\n    const provider = String(r.provider ?? '').trim();\n    const summary = String(r.summary ?? '').trim();\n    if (!slug || !name || !provider || summary.length < 10) continue;\n\n    // Same reasoning as the date check below: a placeholder here would\n    // fail Zod validation for the whole batch on the receiving end, not\n    // just this row. The prompt already says never to write one; this is\n    // the defense-in-depth in case that instruction slips.\n    if (/^(unknown|n\\/?a|none|tbd|<.*>)$/i.test(provider)) continue;\n\n    // Validated rather than trusted — one malformed date would otherwise\n    // fail Zod validation for the entire batch on the receiving end, not\n    // just this one rumor.\n    const rawDate = String(r.predictedDate ?? '').trim();\n    const predictedDate = /^\\d{4}-\\d{2}-\\d{2}$/.test(rawDate) ? rawDate : null;\n\n    rumors.push({\n      slug,\n      name,\n      provider,\n      summary: summary.slice(0, 500),\n      sourceUrl: src.link,\n      ...(predictedDate ? { predictedDate } : {}),\n    });\n  }\n}\n\nif (!rumors.length) return [];\nreturn [{ json: { rumors } }];"
       },
       "id": "flatten",
       "name": "Flatten rumors",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [660, 140]
+      "position": [
+        660,
+        140
+      ]
     },
     {
       "parameters": {
@@ -121,7 +176,9 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify($json) }}",
-        "options": { "timeout": 30000 },
+        "options": {
+          "timeout": 30000
+        },
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth"
       },
@@ -129,9 +186,15 @@
       "name": "POST /api/ingest/rumors",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [880, 140],
+      "position": [
+        880,
+        140
+      ],
       "credentials": {
-        "httpHeaderAuth": { "id": "RgekZWiaJvwenceq", "name": "trackai — Ingest token" }
+        "httpHeaderAuth": {
+          "id": "RgekZWiaJvwenceq",
+          "name": "trackai — Ingest token"
+        }
       }
     }
   ],
@@ -139,33 +202,105 @@
     "Daily 05:45": {
       "main": [
         [
-          { "node": "Rumor classifier contract", "type": "main", "index": 0 },
-          { "node": "TechCrunch AI feed", "type": "main", "index": 0 },
-          { "node": "VentureBeat AI feed", "type": "main", "index": 0 },
-          { "node": "QbitAI feed (China)", "type": "main", "index": 0 }
+          {
+            "node": "Rumor classifier contract",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "TechCrunch AI feed",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "VentureBeat AI feed",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "QbitAI feed (China)",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "TechCrunch AI feed": {
-      "main": [[{ "node": "Combine feeds", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Combine feeds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "VentureBeat AI feed": {
-      "main": [[{ "node": "Combine feeds", "type": "main", "index": 1 }]]
+      "main": [
+        [
+          {
+            "node": "Combine feeds",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
     },
     "QbitAI feed (China)": {
-      "main": [[{ "node": "Combine feeds", "type": "main", "index": 2 }]]
+      "main": [
+        [
+          {
+            "node": "Combine feeds",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
     },
     "Combine feeds": {
-      "main": [[{ "node": "Cap + build candidates", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Cap + build candidates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Cap + build candidates": {
-      "main": [[{ "node": "Claude classify", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Claude classify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Claude classify": {
-      "main": [[{ "node": "Flatten rumors", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Flatten rumors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Flatten rumors": {
-      "main": [[{ "node": "POST /api/ingest/rumors", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "POST /api/ingest/rumors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   }
 }

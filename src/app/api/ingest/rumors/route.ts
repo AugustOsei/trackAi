@@ -31,7 +31,16 @@ const rumorSchema = z.object({
     .min(1)
     .max(200)
     .regex(/^[a-z0-9-]+$/, "slug must be lowercase alphanumeric with hyphens"),
-  provider: z.string().trim().min(1).max(120),
+  // Guards against a placeholder value ("Unknown", "<UNKNOWN>", "N/A")
+  // rather than trusting the classifier's instruction to skip those rows —
+  // this field feeds provider badges and filters everywhere on the site, so
+  // a placeholder here is worse than one bad row silently dropped.
+  provider: z
+    .string()
+    .trim()
+    .min(1)
+    .max(120)
+    .refine((v) => !/^(unknown|n\/?a|none|tbd|<.*>)$/i.test(v), "provider looks like a placeholder"),
   predictedDate: z.string().date().nullish(),
   summary: z.string().trim().min(10).max(500),
   sourceUrl: z.string().trim().url().max(2000),

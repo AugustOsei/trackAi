@@ -31,6 +31,7 @@ For each model the article NAMES BY NAME (not "OpenAI's next model" — an actua
 - A predicted date only if the article states or clearly implies one (e.g. "expected next month" relative to the article's own date, printed below). Never invent a date the text doesn't support — omit it rather than guess.
 - A one-sentence summary of what's being said, in your own words. Never quote the article.
 - Skip pure speculation with no named model ("OpenAI is definitely working on something big").
+- If the article doesn't identify even a suspected provider (a genuine "stealth model, nobody knows who's behind it" story), skip the entry entirely. Never write a placeholder like "Unknown" or "<UNKNOWN>" into the provider field — this site organizes and filters everything by provider, and a placeholder there is worse than not listing the model at all.
 
 If the article names no qualifying unreleased model, return an empty list. Most articles will — that is the expected, normal result, not a failure.`;
 }
