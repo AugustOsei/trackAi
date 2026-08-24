@@ -6,6 +6,7 @@ import { ProviderBadge } from "@/components/provider-badge";
 import { Perforation } from "@/components/perforation";
 import { ReportCard } from "@/components/report-card";
 import { TASK_LABELS, formatDate, formatPrice } from "@/lib/format";
+import { pageMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -16,10 +17,10 @@ export async function generateMetadata({
   const { slug } = await params;
   const model = await getModelBySlug(slug);
   if (!model) return {};
-  return {
+  return pageMetadata({
     title: `${model.name} — claim vs. reality`,
-    description: model.providerBlurb ?? undefined,
-  };
+    description: model.providerBlurb,
+  });
 }
 
 export default async function ModelDetailPage({

@@ -1,13 +1,13 @@
-import type { Metadata } from "next";
 import { getModelOptionsForSubmit } from "@/lib/queries";
 import { SubmitForm } from "./submit-form";
+import { pageMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
+export const metadata = pageMetadata({
   title: "Submit a report",
   description: "Tell us what happened when you tried an AI model on a real task.",
-};
+});
 
 export default async function SubmitPage({
   searchParams,

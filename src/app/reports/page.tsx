@@ -1,17 +1,17 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { getApprovedReportsFeed, getApprovedSourceCounts } from "@/lib/queries";
 import { ReportCard } from "@/components/report-card";
 import { SOURCE_FILTERS } from "@/lib/sources";
+import { pageMetadata } from "@/lib/seo";
 import type { Report } from "@/db/schema";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
+export const metadata = pageMetadata({
   title: "Reports",
   description:
     "Every reviewed reality-check report, newest first — how AI models actually perform on real tasks, sourced from Hacker News, developer forums, and YouTube.",
-};
+});
 
 export default async function ReportsFeedPage({ searchParams }: PageProps<"/reports">) {
   const params = await searchParams;

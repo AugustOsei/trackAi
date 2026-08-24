@@ -1,11 +1,11 @@
-import type { Metadata } from "next";
 import { StatusDot } from "@/components/status-dot";
 import { Perforation } from "@/components/perforation";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata = pageMetadata({
   title: "About",
   description: "How trackai sources, reviews, and publishes model claims and reality checks.",
-};
+});
 
 export default function AboutPage() {
   return (

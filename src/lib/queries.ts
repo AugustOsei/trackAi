@@ -100,3 +100,10 @@ export async function getConfirmedSubscribers() {
     .from(subscribers)
     .where(eq(subscribers.status, "confirmed"));
 }
+
+/** Every model's slug and last claim update, for the sitemap. */
+export async function getAllModelSlugsForSitemap() {
+  return db
+    .select({ slug: models.slug, claimUpdatedAt: models.claimUpdatedAt })
+    .from(models);
+}

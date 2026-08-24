@@ -16,13 +16,30 @@ const jetbrainsMono = JetBrains_Mono({
   weight: ["400", "500", "600"],
 });
 
+const SITE_URL = "https://trackai.theaugustdispatch.com";
+const TITLE = "trackai — claim vs. reality, tracked";
+const DESCRIPTION =
+  "An AI model release tracker that pairs every benchmark claim against independently sourced reality-check reports.";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: "trackai — claim vs. reality, tracked",
+    default: TITLE,
     template: "%s · trackai",
   },
-  description:
-    "An AI model release tracker that pairs every benchmark claim against independently sourced reality-check reports.",
+  description: DESCRIPTION,
+  openGraph: {
+    title: TITLE,
+    description: DESCRIPTION,
+    url: SITE_URL,
+    siteName: "trackai",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: TITLE,
+    description: DESCRIPTION,
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
