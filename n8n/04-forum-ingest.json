@@ -1,0 +1,353 @@
+{
+  "name": "trackai — forum ingest (REALITY layer)",
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Denver"
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "triggerAtHour": 7,
+              "triggerAtMinute": 15
+            }
+          ]
+        }
+      },
+      "id": "schedule",
+      "name": "Daily 07:15",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://trackai.theaugustdispatch.com/api/ingest/classifier?source=forum",
+        "options": {
+          "timeout": 30000
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "classifier",
+      "name": "Classifier contract",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -220,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "RgekZWiaJvwenceq",
+          "name": "trackai — Ingest token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://trackai.theaugustdispatch.com/api/ingest/models",
+        "options": {
+          "timeout": 30000
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "get-models",
+      "name": "GET tracked models",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        0,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "RgekZWiaJvwenceq",
+          "name": "trackai — Ingest token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Which forums to poll, and what the tracked models are called.\n// /latest.json and /t/<id>.json are used rather than /search.json because\n// every one of these forums disallows /search in robots.txt.\nconst models = $input.first().json.models ?? [];\nconst forums = [\"forum.cursor.com\", \"community.openai.com\", \"discuss.huggingface.co\"];\n// Two pages each: one page of /latest.json is about 30 topics, which on a\n// busy forum is a few hours of activity rather than the full day.\nconst out = [];\nfor (const host of forums) {\n  for (const page of [0, 1]) out.push({ json: { host, page, models } });\n}\nreturn out;"
+      },
+      "id": "forums",
+      "name": "Forums to poll",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://{{ $json.host }}/latest.json?page={{ $json.page }}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "latest",
+      "name": "GET forum latest",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pick threads worth opening. A title naming a tracked model is the strong\n// signal; a busy recent thread is the weak one, because the best reports\n// often sit inside a general thread whose title names no model at all.\n// The model still has to be named in the post body later, so a wrong guess\n// here costs one request, not a bad report.\n\nfunction buildMatchers(models) {\n  return models\n    .filter((m) => m.name && m.name.length >= 4)\n    .map((m) => ({ slug: m.slug, name: m.name, needle: m.name.toLowerCase() }))\n    .sort((a, b) => b.needle.length - a.needle.length);\n}\n\nfunction matchModel(text, matchers) {\n  const hay = String(text || '').toLowerCase();\n  for (const m of matchers) {\n    if (hay.includes(m.needle)) return m;\n  }\n  return null;\n}\n\nfunction stripHtml(s) {\n  return String(s || '')\n    .replace(/<blockquote[\\s\\S]*?<\\/blockquote>/gi, ' ')\n    .replace(/<[^>]*>/g, ' ')\n    .replace(/&#x2F;/g, '/')\n    .replace(/&#x27;/g, \"'\")\n    .replace(/&quot;/g, '\"')\n    .replace(/&amp;/g, '&')\n    .replace(/&lt;/g, '<')\n    .replace(/&gt;/g, '>')\n    .replace(/&nbsp;/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nconst sources = $('Forums to poll').all();\nconst cutoff = Date.now() - 1000 * 60 * 60 * 24 * 30;\nconst out = [];\n\nconst items = $input.all();\nfor (let i = 0; i < items.length; i++) {\n  const host = sources[i]?.json?.host;\n  const matchers = buildMatchers(sources[i]?.json?.models ?? []);\n  if (!host) continue;\n\n  const topics = items[i].json?.topic_list?.topics ?? [];\n  const picked = [];\n  for (const t of topics) {\n    const bumped = new Date(t.bumped_at || t.created_at).getTime();\n    if (!bumped || bumped < cutoff) continue;\n    const named = matchModel(t.title, matchers);\n    const busy = (t.posts_count ?? 0) >= 5;\n    if (!named && !busy) continue;\n    picked.push({ json: { host, topicId: t.id, title: t.title } });\n  }\n  out.push(...picked);\n}\n\n// Cap per forum, not overall, so one busy forum cannot crowd out the rest.\nconst perForum = new Map();\nconst capped = [];\nfor (const item of out) {\n  const n = perForum.get(item.json.host) ?? 0;\n  if (n >= 10) continue;\n  perForum.set(item.json.host, n + 1);\n  capped.push(item);\n}\nreturn capped;"
+      },
+      "id": "topics",
+      "name": "Topics worth reading",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://{{ $json.host }}/t/{{ $json.topicId }}.json",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "posts",
+      "name": "GET topic posts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Turn thread posts into candidates. A post only counts if it names a\n// tracked model itself — inheriting the thread's model would attribute\n// every reply in a busy thread to whatever the title happened to say.\n\nfunction buildMatchers(models) {\n  return models\n    .filter((m) => m.name && m.name.length >= 4)\n    .map((m) => ({ slug: m.slug, name: m.name, needle: m.name.toLowerCase() }))\n    .sort((a, b) => b.needle.length - a.needle.length);\n}\n\nfunction matchModel(text, matchers) {\n  const hay = String(text || '').toLowerCase();\n  for (const m of matchers) {\n    if (hay.includes(m.needle)) return m;\n  }\n  return null;\n}\n\nfunction stripHtml(s) {\n  return String(s || '')\n    .replace(/<blockquote[\\s\\S]*?<\\/blockquote>/gi, ' ')\n    .replace(/<[^>]*>/g, ' ')\n    .replace(/&#x2F;/g, '/')\n    .replace(/&#x27;/g, \"'\")\n    .replace(/&quot;/g, '\"')\n    .replace(/&amp;/g, '&')\n    .replace(/&lt;/g, '<')\n    .replace(/&gt;/g, '>')\n    .replace(/&nbsp;/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nconst sources = $('Topics worth reading').all();\nconst models = $('GET tracked models').first().json.models ?? [];\nconst matchers = buildMatchers(models);\nconst cap = $('Classifier contract').first().json.candidatesPerRun ?? 12;\nconst cutoff = Date.now() - 1000 * 60 * 60 * 24 * 30;\n\nconst out = [];\nconst seen = new Set();\nconst items = $input.all();\n\nfor (let i = 0; i < items.length; i++) {\n  const host = sources[i]?.json?.host;\n  if (!host) continue;\n  const topic = items[i].json ?? {};\n  const slugPart = topic.slug ?? 't';\n\n  for (const post of topic.post_stream?.posts ?? []) {\n    // Skip the staff/bot posts every Discourse instance auto-generates.\n    if (post.username === 'system' || post.admin === true) continue;\n    const text = stripHtml(post.cooked);\n    if (text.length < 180) continue;\n    if (new Date(post.created_at).getTime() < cutoff) continue;\n    if (/automatically closed|no longer allowed/i.test(text)) continue;\n\n    const model = matchModel(text, matchers);\n    if (!model) continue;\n\n    const url = `https://${host}/t/${slugPart}/${topic.id}/${post.post_number}`;\n    if (seen.has(url)) continue;\n    seen.add(url);\n\n    out.push({ json: {\n      modelSlug: model.slug,\n      modelName: model.name,\n      sourceUrl: url,\n      text: text.slice(0, 4000),\n    } });\n  }\n}\n\nreturn out.slice(0, cap);"
+      },
+      "id": "build",
+      "name": "Build candidates",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  model: $('Classifier contract').first().json.model,\n  max_tokens: $('Classifier contract').first().json.maxTokens,\n  system: $('Classifier contract').first().json.system,\n  tools: [$('Classifier contract').first().json.tool],\n  tool_choice: { type: 'tool', name: 'record_reality_check' },\n  messages: [{ role: 'user', content: 'Model being discussed: ' + $json.modelName + '\\n\\nText:\\n' + $json.text }]\n}) }}",
+        "options": {
+          "timeout": 60000
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "classify",
+      "name": "Claude classify",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "n7P86OuiUUm35DEs",
+          "name": "trackai — Anthropic API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pull the forced tool call out of each response and keep only the\n// usable ones. Anything malformed is dropped rather than guessed at —\n// a bad row here becomes a bad card in the review queue.\nconst candidates = $('Build candidates').all();\nconst reports = [];\n\nconst items = $input.all();\nfor (let i = 0; i < items.length; i++) {\n  const src = candidates[i]?.json;\n  if (!src) continue;\n\n  const block = (items[i].json.content ?? []).find((b) => b.type === 'tool_use');\n  const result = block?.input;\n  if (!result || result.usable !== true) continue;\n\n  const takeaway = String(result.takeaway ?? '').trim();\n  if (takeaway.length < 10) continue;\n\n  reports.push({\n    modelSlug: src.modelSlug,\n    taskCategory: result.taskCategory,\n    takeaway: takeaway.slice(0, 400),\n    sourceUrl: src.sourceUrl,\n    sourceType: 'forum',\n  });\n}\n\n// Nothing usable this run is a normal outcome, not an error.\nif (!reports.length) return [];\nreturn [{ json: { reports } }];"
+      },
+      "id": "keep",
+      "name": "Keep usable reports",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://trackai.theaugustdispatch.com/api/ingest/reports",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ reports: $json.reports }) }}",
+        "options": {
+          "timeout": 30000
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "post",
+      "name": "POST /api/ingest/reports",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "RgekZWiaJvwenceq",
+          "name": "trackai — Ingest token"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Daily 07:15": {
+      "main": [
+        [
+          {
+            "node": "Classifier contract",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classifier contract": {
+      "main": [
+        [
+          {
+            "node": "GET tracked models",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET tracked models": {
+      "main": [
+        [
+          {
+            "node": "Forums to poll",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Forums to poll": {
+      "main": [
+        [
+          {
+            "node": "GET forum latest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET forum latest": {
+      "main": [
+        [
+          {
+            "node": "Topics worth reading",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Topics worth reading": {
+      "main": [
+        [
+          {
+            "node": "GET topic posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET topic posts": {
+      "main": [
+        [
+          {
+            "node": "Build candidates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build candidates": {
+      "main": [
+        [
+          {
+            "node": "Claude classify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude classify": {
+      "main": [
+        [
+          {
+            "node": "Keep usable reports",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Keep usable reports": {
+      "main": [
+        [
+          {
+            "node": "POST /api/ingest/reports",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

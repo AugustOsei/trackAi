@@ -1,6 +1,7 @@
 import { ProviderBadge } from "@/components/provider-badge";
 import { TaskTag } from "@/components/task-tag";
-import { formatDate, sourceDomain } from "@/lib/format";
+import { SourceTag } from "@/components/source-tag";
+import { formatDate } from "@/lib/format";
 import type { getPendingReports } from "@/lib/queries";
 
 type PendingReport = Awaited<ReturnType<typeof getPendingReports>>[number];
@@ -39,15 +40,7 @@ export function ReviewQueue({
           </div>
 
           <div className="font-data mt-3 flex flex-wrap items-center gap-3 text-xs text-ink-muted">
-            <a
-              href={report.sourceUrl}
-              target="_blank"
-              rel="noopener noreferrer nofollow"
-              className="hover:text-gold"
-            >
-              {sourceDomain(report.sourceUrl)} ↗
-            </a>
-            <span>{report.sourceType}</span>
+            <SourceTag sourceType={report.sourceType} sourceUrl={report.sourceUrl} />
             <span>submitted {formatDate(report.submittedAt)}</span>
           </div>
 

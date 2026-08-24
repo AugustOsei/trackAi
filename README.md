@@ -10,7 +10,7 @@ Deploys to `trackai.theaugustdispatch.com`.
 
 | | CLAIM | REALITY |
 | --- | --- | --- |
-| Source | The provider's own announcement | Hacker News + public submissions |
+| Source | The provider's own announcement | Hacker News, Reddit, YouTube, developer forums + public submissions |
 | What it is | What the lab says about its own model, plus the figures it chose to publish, plus a link to the post | What someone found when they actually used it |
 | Publishing | Automatic | **Never** auto-published; every report waits for review |
 
@@ -145,6 +145,52 @@ source, so a reader can check any claim in one click.
 Only models missing an announcement are processed — a launch claim doesn't
 change after the fact, so re-reading every page nightly would just spend
 tokens rewriting identical text.
+
+### Where reality reports come from
+
+Four collectors, staggered through the morning so they don't collide, each
+tagged so a reader can see the provenance and filter by it. Breadth here is the
+point: a tracker that only reads one forum inherits that forum's blind spots.
+
+| Workflow | Source | Runs | Credential |
+| --- | --- | --- | --- |
+| `02-reality-check-ingest` | Hacker News | 07:00 | none |
+| `04-forum-ingest` | Cursor forum, OpenAI community, Hugging Face | 07:15 | none |
+| `05-reddit-ingest` | r/LocalLLaMA, r/ClaudeAI, r/OpenAI, r/singularity, r/ChatGPTCoding | 07:30 | Reddit app (Basic Auth) |
+| `06-youtube-ingest` | Comments on model review videos | 07:45 | YouTube Data API key (Query Auth) |
+
+**Forums use `/latest.json` and `/t/<id>.json`, never `/search.json`** — every
+one of these Discourse instances disallows `/search` in `robots.txt`. Recent
+topics are pulled, then model names are matched locally in the post bodies. A
+post only becomes a candidate if it names a tracked model *itself*; inheriting
+the model from the thread title would attribute every reply in a busy thread to
+whatever the title happened to say.
+
+**YouTube is comments only.** Transcripts are not in the official Data API and
+scraping them breaks YouTube's terms, so what lands here is what commenters
+report, not what the reviewer says. It is the noisiest source and the prompt
+tells the classifier so. Quota: a search costs 100 units against a 10,000/day
+free allowance and pulling 100 comments costs 1, so only models from the last 45
+days are searched — searching all 38 tracked models daily would spend a third of
+the budget re-finding videos nobody is still watching.
+
+**Deliberately not used:** X/Twitter (API starts at $200/month), GitHub (tested —
+`"opus" in:body` returns 340k results dominated by unrelated dependency bumps),
+Stack Overflow (it answers "how do I fix this code", not "how did this model
+perform").
+
+### The shared classifier
+
+All four collectors fetch `GET /api/ingest/classifier?source=<type>` at run time
+rather than carrying their own copy of the prompt. Four hand-copies in a web UI
+drift, and when they drift "reviewed report" quietly means something different
+depending on which workflow found it — which would make the source tags on the
+site compare unlike things. The prompt lives in `src/lib/classifier-prompt.ts`,
+so changing it is a code change with a git history.
+
+The `?source=` parameter tailors one paragraph — how much benefit of the doubt
+that source has earned — while the bar for a usable report stays identical. A
+vague Cursor forum post is not more usable than a specific YouTube comment.
 
 **`02-reality-check-ingest.json`** — daily at 07:00. Tracked models → Hacker
 News *comment* search (comments carry first-hand usage; story titles rarely do)

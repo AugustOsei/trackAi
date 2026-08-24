@@ -22,7 +22,7 @@ const reportSchema = z.object({
   taskCategory: z.enum(["coding", "agentic", "vision", "writing", "other"]),
   takeaway: z.string().trim().min(10).max(400),
   sourceUrl: z.string().trim().url(),
-  sourceType: z.enum(["hn", "manual"]).default("hn"),
+  sourceType: z.enum(["hn", "reddit", "youtube", "forum", "manual"]).default("hn"),
 });
 
 const payloadSchema = z.object({

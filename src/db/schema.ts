@@ -29,7 +29,22 @@ export const taskCategoryEnum = pgEnum("task_category", [
   "other",
 ]);
 
-export const sourceTypeEnum = pgEnum("source_type", ["hn", "manual"]);
+/**
+ * Where a reality report came from.
+ *
+ * Deliberately coarse: `forum` covers every Discourse instance rather than
+ * enumerating them, because the exact forum is already recoverable from
+ * `sourceUrl` and a new one shouldn't require a database migration. What the
+ * enum has to distinguish is the *kind* of place, since that is what tells a
+ * reader how much weight to give a report.
+ */
+export const sourceTypeEnum = pgEnum("source_type", [
+  "hn",
+  "reddit",
+  "youtube",
+  "forum",
+  "manual",
+]);
 
 export const reportStatusEnum = pgEnum("report_status", [
   "pending",
