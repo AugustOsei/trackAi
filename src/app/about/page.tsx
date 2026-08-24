@@ -53,10 +53,11 @@ export default function AboutPage() {
             REALITY — REVIEWED REPORTS
           </h3>
           <p className="mt-2 text-ink">
-            Reports start as posts on Hacker News, or submissions from
-            readers, describing what happened when someone actually used a
-            model on a real task. Each one is summarized into a short
-            takeaway and a task tag — never a copy of the original text —
+            Reports start as posts on Hacker News, developer forums, and
+            YouTube, or as submissions from readers, describing what happened
+            when someone actually used a model on a real task. Each one is
+            summarized into a short takeaway and a task tag — never a copy
+            of the original text —
             with a link back to the source. Nothing here is confirmed
             information the way a release date is; it’s one person’s
             account, and it’s presented that way.
@@ -71,8 +72,9 @@ export default function AboutPage() {
         <p className="mt-2 text-ink">
           Because reality-check reports are lower-confidence than confirmed
           releases, nothing from that layer goes live automatically. Every
-          report — sourced from Hacker News or submitted directly — sits in
-          a review queue until it’s approved. Rejected reports never appear
+          report — sourced from Hacker News, developer forums, YouTube, or
+          submitted directly — sits in a review queue until it’s approved.
+          Rejected reports never appear
           on the site. There’s no algorithmic ranking or voting behind what
           gets published; it’s a single editorial pass.
         </p>
