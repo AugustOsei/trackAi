@@ -22,9 +22,33 @@
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
-        -380,
+        -440,
         0
       ]
+    },
+    {
+      "parameters": {
+        "url": "https://trackai.theaugustdispatch.com/api/ingest/classifier?source=hn",
+        "options": {
+          "timeout": 30000
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "classifier",
+      "name": "Classifier contract",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -220,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "RgekZWiaJvwenceq",
+          "name": "trackai — Ingest token"
+        }
+      }
     },
     {
       "parameters": {
@@ -40,7 +64,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -160,
+        0,
         0
       ],
       "credentials": {
@@ -54,12 +78,12 @@
       "parameters": {
         "jsCode": "// Only search for models distinctive enough to give clean HN hits.\n// A two-character name would match everything and poison the queue.\nconst models = $input.first().json.models ?? [];\nreturn models\n  .filter((m) => m.name && m.name.length >= 4)\n  .slice(0, 40)\n  .map((m) => ({ json: { slug: m.slug, name: m.name, provider: m.provider } }));"
       },
-      "id": "fan-out",
+      "id": "pick",
       "name": "One item per model",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        60,
+        220,
         0
       ]
     },
@@ -71,7 +95,7 @@
           "parameters": [
             {
               "name": "query",
-              "value": "={{ '\"' + $json.name + '\"' }}"
+              "value": "={{ $json.name }}"
             },
             {
               "name": "tags",
@@ -84,28 +108,33 @@
           ]
         },
         "options": {
-          "timeout": 30000
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
         }
       },
-      "id": "hn-search",
+      "id": "search",
       "name": "HN comment search",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        280,
+        440,
         0
       ]
     },
     {
       "parameters": {
-        "jsCode": "// Flatten every model's hits into one candidate list.\n// $('One item per model').all()[i] keeps each response paired with the model\n// it was searched for — the HTTP node replaces item data otherwise.\nconst sources = $('One item per model').all();\nconst decode = (s) =>\n  String(s || '')\n    .replace(/<[^>]*>/g, ' ')\n    .replace(/&#x2F;/g, '/')\n    .replace(/&#x27;/g, \"'\")\n    .replace(/&quot;/g, '\"')\n    .replace(/&amp;/g, '&')\n    .replace(/&lt;/g, '<')\n    .replace(/&gt;/g, '>')\n    .replace(/\\s+/g, ' ')\n    .trim();\n\nconst cutoff = Date.now() - 1000 * 60 * 60 * 24 * 30; // last 30 days only\nconst out = [];\nconst seen = new Set();\n\nconst items = $input.all();\nfor (let i = 0; i < items.length; i++) {\n  const model = sources[i]?.json;\n  if (!model) continue;\n  for (const hit of items[i].json.hits ?? []) {\n    const text = decode(hit.comment_text);\n    // Too short to contain a usable account of actually using the thing.\n    if (text.length < 180) continue;\n    if (new Date(hit.created_at).getTime() < cutoff) continue;\n    const url = `https://news.ycombinator.com/item?id=${hit.objectID}`;\n    if (seen.has(url)) continue;\n    seen.add(url);\n    out.push({ json: { modelSlug: model.slug, modelName: model.name, sourceUrl: url, text: text.slice(0, 4000) } });\n  }\n}\n\n// Cap per run so one busy window can't produce a giant Anthropic bill.\nreturn out.slice(0, 12);"
+        "jsCode": "// Flatten every model's hits into one candidate list. Pairing each response\n// with the model it was searched for matters here — the HTTP node replaces\n// item data, so the association is positional or it is lost.\n\nfunction buildMatchers(models) {\n  return models\n    .filter((m) => m.name && m.name.length >= 4)\n    .map((m) => ({ slug: m.slug, name: m.name, needle: m.name.toLowerCase() }))\n    .sort((a, b) => b.needle.length - a.needle.length);\n}\n\nfunction matchModel(text, matchers) {\n  const hay = String(text || '').toLowerCase();\n  for (const m of matchers) {\n    if (hay.includes(m.needle)) return m;\n  }\n  return null;\n}\n\nfunction stripHtml(s) {\n  return String(s || '')\n    .replace(/<blockquote[\\s\\S]*?<\\/blockquote>/gi, ' ')\n    .replace(/<[^>]*>/g, ' ')\n    .replace(/&#x2F;/g, '/')\n    .replace(/&#x27;/g, \"'\")\n    .replace(/&quot;/g, '\"')\n    .replace(/&amp;/g, '&')\n    .replace(/&lt;/g, '<')\n    .replace(/&gt;/g, '>')\n    .replace(/&nbsp;/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nconst sources = $('One item per model').all();\nconst cap = $('Classifier contract').first().json.candidatesPerRun ?? 12;\nconst cutoff = Date.now() - 1000 * 60 * 60 * 24 * 30;\nconst out = [];\nconst seen = new Set();\n\nconst items = $input.all();\nfor (let i = 0; i < items.length; i++) {\n  const model = sources[i]?.json;\n  if (!model) continue;\n  for (const hit of items[i].json.hits ?? []) {\n    const text = stripHtml(hit.comment_text);\n    // Too short to contain a usable account of actually using the thing.\n    if (text.length < 180) continue;\n    if (new Date(hit.created_at).getTime() < cutoff) continue;\n    const url = `https://news.ycombinator.com/item?id=${hit.objectID}`;\n    if (seen.has(url)) continue;\n    seen.add(url);\n    out.push({ json: {\n      modelSlug: model.slug,\n      modelName: model.name,\n      sourceUrl: url,\n      text: text.slice(0, 4000),\n    } });\n  }\n}\n\nreturn out.slice(0, cap);"
       },
-      "id": "candidates",
+      "id": "build",
       "name": "Build candidates",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        500,
+        660,
         0
       ]
     },
@@ -128,19 +157,19 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({\n  model: 'claude-haiku-4-5',\n  max_tokens: 1024,\n  system: \"You classify Hacker News comments for trackai, a tracker that pairs AI model benchmark claims against real-world reports.\\n\\nYou will be given one comment that mentions a named model. Decide whether it is a FIRST-HAND account of someone actually using that model on a real task.\\n\\nMark usable=false when the comment is: speculation, pricing or business chat, a complaint about the company rather than the model, a benchmark score quoted secondhand, or only a passing mention.\\n\\nIf usable, write the takeaway as ONE sentence of AT MOST 200 CHARACTERS. This is a hard limit; longer text gets truncated mid-word on the site.\\n\\nWrite it as a finding, not as reportage. Start with what the model did. Never begin with 'User reports', 'The user', 'Someone', or 'This comment'.\\n\\nGood: 'Ported a 40k-line Django app to FastAPI with routing right first pass, but kept assuming an async DB driver and needed three corrections.'\\nBad: 'User reports that they used the model to convert a large Django application...'\\n\\nParaphrase only — never quote or reuse the comment's wording. Be specific and neutral, and keep the limitation or failure if there was one; do not make it sound more positive than it was.\",\n  tools: [{\n    name: 'record_reality_check',\n    description: 'Record whether this comment is a usable first-hand report, and if so summarise it.',\n    strict: true,\n    input_schema: {\n      type: 'object',\n      properties: {\n        usable: { type: 'boolean', description: 'True only for a first-hand account of using the model on a real task.' },\n        taskCategory: { type: 'string', enum: ['coding','agentic','vision','writing','other'] },\n        takeaway: { type: 'string', description: 'One sentence, 10-200 chars, paraphrased, no reportage preamble. Empty string when usable is false.' }\n      },\n      required: ['usable','taskCategory','takeaway'],\n      additionalProperties: false\n    }\n  }],\n  tool_choice: { type: 'tool', name: 'record_reality_check' },\n  messages: [{ role: 'user', content: 'Model being discussed: ' + $json.modelName + '\\n\\nComment:\\n' + $json.text }]\n}) }}",
+        "jsonBody": "={{ JSON.stringify({\n  model: $('Classifier contract').first().json.model,\n  max_tokens: $('Classifier contract').first().json.maxTokens,\n  system: $('Classifier contract').first().json.system,\n  tools: [$('Classifier contract').first().json.tool],\n  tool_choice: { type: 'tool', name: 'record_reality_check' },\n  messages: [{ role: 'user', content: 'Model being discussed: ' + $json.modelName + '\\n\\nText:\\n' + $json.text }]\n}) }}",
         "options": {
-          "timeout": 120000
+          "timeout": 60000
         },
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth"
       },
-      "id": "summarize",
-      "name": "Claude summarize",
+      "id": "classify",
+      "name": "Claude classify",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        720,
+        880,
         0
       ],
       "credentials": {
@@ -152,14 +181,14 @@
     },
     {
       "parameters": {
-        "jsCode": "// Pull the forced tool call out of each response and keep only the usable\n// ones. Anything malformed is dropped rather than guessed at — a bad row\n// here becomes a bad card in the review queue.\nconst candidates = $('Build candidates').all();\nconst reports = [];\n\nconst items = $input.all();\nfor (let i = 0; i < items.length; i++) {\n  const src = candidates[i]?.json;\n  if (!src) continue;\n\n  const block = (items[i].json.content ?? []).find((b) => b.type === 'tool_use');\n  const result = block?.input;\n  if (!result || result.usable !== true) continue;\n\n  const takeaway = String(result.takeaway ?? '').trim();\n  if (takeaway.length < 10) continue;\n\n  reports.push({\n    modelSlug: src.modelSlug,\n    taskCategory: result.taskCategory,\n    takeaway: takeaway.slice(0, 400),\n    sourceUrl: src.sourceUrl,\n    sourceType: 'hn',\n  });\n}\n\n// Nothing usable this run is a normal outcome, not an error.\nif (!reports.length) return [];\nreturn [{ json: { reports } }];"
+        "jsCode": "// Pull the forced tool call out of each response and keep only the\n// usable ones. Anything malformed is dropped rather than guessed at —\n// a bad row here becomes a bad card in the review queue.\nconst candidates = $('Build candidates').all();\nconst reports = [];\n\nconst items = $input.all();\nfor (let i = 0; i < items.length; i++) {\n  const src = candidates[i]?.json;\n  if (!src) continue;\n\n  const block = (items[i].json.content ?? []).find((b) => b.type === 'tool_use');\n  const result = block?.input;\n  if (!result || result.usable !== true) continue;\n\n  const takeaway = String(result.takeaway ?? '').trim();\n  if (takeaway.length < 10) continue;\n\n  reports.push({\n    modelSlug: src.modelSlug,\n    taskCategory: result.taskCategory,\n    takeaway: takeaway.slice(0, 400),\n    sourceUrl: src.sourceUrl,\n    sourceType: 'hn',\n  });\n}\n\n// Nothing usable this run is a normal outcome, not an error.\nif (!reports.length) return [];\nreturn [{ json: { reports } }];"
       },
-      "id": "build-payload",
+      "id": "keep",
       "name": "Keep usable reports",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        940,
+        1100,
         0
       ]
     },
@@ -176,12 +205,12 @@
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth"
       },
-      "id": "post-reports",
+      "id": "post",
       "name": "POST /api/ingest/reports",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1160,
+        1320,
         0
       ],
       "credentials": {
@@ -193,6 +222,28 @@
     }
   ],
   "connections": {
+    "Daily 07:00": {
+      "main": [
+        [
+          {
+            "node": "Classifier contract",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classifier contract": {
+      "main": [
+        [
+          {
+            "node": "GET tracked models",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "GET tracked models": {
       "main": [
         [
@@ -230,14 +281,14 @@
       "main": [
         [
           {
-            "node": "Claude summarize",
+            "node": "Claude classify",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Claude summarize": {
+    "Claude classify": {
       "main": [
         [
           {
@@ -253,17 +304,6 @@
         [
           {
             "node": "POST /api/ingest/reports",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Daily 07:00": {
-      "main": [
-        [
-          {
-            "node": "GET tracked models",
             "type": "main",
             "index": 0
           }
