@@ -109,7 +109,13 @@
         440,
         0
       ],
-      "notes": "Query Auth credential: name = key, value = your YouTube Data API key."
+      "notes": "Query Auth credential: name = key, value = your YouTube Data API key.",
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "NWsV7QoHmUK2FbAt",
+          "name": "trackai — YouTube Data API"
+        }
+      }
     },
     {
       "parameters": {
@@ -145,7 +151,13 @@
       "position": [
         880,
         0
-      ]
+      ],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "NWsV7QoHmUK2FbAt",
+          "name": "trackai — YouTube Data API"
+        }
+      }
     },
     {
       "parameters": {
