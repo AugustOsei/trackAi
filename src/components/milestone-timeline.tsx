@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MilestoneEntry } from "@/components/milestone-entry";
 import { providerStyle } from "@/lib/providers";
-import { formatDayMonth, formatMonthYear, formatMonthYearShort } from "@/lib/format";
+import { formatDate, formatDayMonth, formatMonthYear, formatMonthYearShort } from "@/lib/format";
 import type { Model } from "@/db/schema";
 
 type ReportPreview = { id: number; taskCategory: string; takeaway: string };
@@ -44,9 +44,11 @@ export function MilestoneTimeline({ models }: { models: TimelineModel[] }) {
   const rollFrame = useRef<number | null>(null);
   const [edge, setEdge] = useState({ top: true, bottom: false });
 
-  const { rows, rangeLabel } = useMemo(() => {
-    const today = startOfUTCDay(new Date());
+  // Computed once per mount, not per render — the marker shouldn't drift to
+  // a new day mid-session just because something else caused a re-render.
+  const today = useMemo(() => startOfUTCDay(new Date()), []);
 
+  const { rows, rangeLabel } = useMemo(() => {
     const dated = models
       .map((m) => ({ model: m, date: modelDate(m) }))
       .filter((x): x is { model: TimelineModel; date: Date } => x.date !== null)
@@ -112,7 +114,7 @@ export function MilestoneTimeline({ models }: { models: TimelineModel[] }) {
       rows: out,
       rangeLabel: `${formatMonthYearShort(start)} — ${formatMonthYearShort(end)}`,
     };
-  }, [models]);
+  }, [models, today]);
 
   const syncEdges = useCallback(() => {
     const el = scrollRef.current;
@@ -296,7 +298,7 @@ export function MilestoneTimeline({ models }: { models: TimelineModel[] }) {
                   return <MonthMarker key={row.key} date={row.date} />;
                 }
                 if (row.kind === "today") {
-                  return <TodayMarker key={row.key} ref={todayRef} />;
+                  return <TodayMarker key={row.key} ref={todayRef} date={today} />;
                 }
 
                 const onLeft = groupIndex % 2 === 0;
@@ -403,12 +405,18 @@ function MonthMarker({ date }: { date: Date }) {
   );
 }
 
-const TodayMarker = function TodayMarker({ ref }: { ref: React.Ref<HTMLDivElement> }) {
+const TodayMarker = function TodayMarker({
+  ref,
+  date,
+}: {
+  ref: React.Ref<HTMLDivElement>;
+  date: Date;
+}) {
   return (
     <div ref={ref} className="relative my-3 flex items-center">
       <div className="hidden h-px flex-1 bg-gold/30 sm:block" />
       <span className="font-display absolute left-5 -translate-x-1/2 rounded-full bg-gold px-2.5 py-1 text-[10px] font-black tracking-wider whitespace-nowrap text-gold-fg sm:static sm:translate-x-0">
-        TODAY
+        TODAY <span className="font-data font-bold opacity-70">· {formatDate(date)}</span>
       </span>
       <div className="ml-14 h-px flex-1 bg-gold/30 sm:ml-0" />
     </div>
