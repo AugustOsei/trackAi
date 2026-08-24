@@ -3,7 +3,7 @@
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { reports } from "@/db/schema";
@@ -14,6 +14,7 @@ import {
   SESSION_COOKIE_NAME,
   SESSION_MAX_AGE_SECONDS,
 } from "@/lib/session";
+import { isValidModerationToken } from "@/lib/moderation-token";
 
 const submitSchema = z.object({
   modelId: z.coerce.number().int().positive(),
@@ -116,17 +117,54 @@ export async function logout() {
   redirect("/admin/login");
 }
 
-export async function approveReport(id: number) {
+async function setReportStatus(id: number, status: "approved" | "rejected") {
+  // Scoped to pending rows so a replayed link cannot resurrect or re-reject a
+  // decision that was already made. Re-clicking is a no-op, not a change.
   await db
     .update(reports)
-    .set({ status: "approved", approvedAt: new Date() })
-    .where(eq(reports.id, id));
+    .set({ status, approvedAt: status === "approved" ? new Date() : null })
+    .where(and(eq(reports.id, id), eq(reports.status, "pending")));
+
   revalidatePath("/admin");
-  revalidatePath("/reports");
-  revalidatePath("/");
+  if (status === "approved") {
+    revalidatePath("/reports");
+    revalidatePath("/");
+  }
+}
+
+export async function approveReport(id: number) {
+  await setReportStatus(id, "approved");
 }
 
 export async function rejectReport(id: number) {
-  await db.update(reports).set({ status: "rejected" }).where(eq(reports.id, id));
-  revalidatePath("/admin");
+  await setReportStatus(id, "rejected");
+}
+
+/**
+ * Approve/reject from an emailed review link.
+ *
+ * The token is verified here, in the mutation itself, rather than only when
+ * the page rendered — the page load and the button press are separate
+ * requests, and only this one changes anything.
+ */
+async function moderateViaLink(
+  token: string,
+  id: number,
+  status: "approved" | "rejected",
+) {
+  const secret = process.env.ADMIN_SESSION_SECRET;
+  if (!secret || !isValidModerationToken(token, secret)) {
+    redirect("/moderate/expired");
+  }
+
+  await setReportStatus(id, status);
+  revalidatePath(`/moderate/${token}`);
+}
+
+export async function approveReportViaLink(token: string, id: number) {
+  await moderateViaLink(token, id, "approved");
+}
+
+export async function rejectReportViaLink(token: string, id: number) {
+  await moderateViaLink(token, id, "rejected");
 }

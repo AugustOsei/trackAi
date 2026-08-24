@@ -12,7 +12,7 @@ Deploys to `trackai.theaugustdispatch.com`.
 | --- | --- | --- |
 | Source | The provider's own announcement | Hacker News + public submissions |
 | What it is | What the lab says about its own model, plus the figures it chose to publish, plus a link to the post | What someone found when they actually used it |
-| Publishing | Automatic | **Never** auto-published; every report waits in `/admin` |
+| Publishing | Automatic | **Never** auto-published; every report waits for review |
 
 There is deliberately no independent-benchmark layer. trackai is not a
 leaderboard — it sets what a lab claims against what users report, and a
@@ -21,7 +21,8 @@ are **not comparable between labs**: each one quotes the benchmarks that
 flatter it. The About page says so to readers.
 
 The ingest endpoint for reports has no way to publish directly — it writes
-`status: 'pending'` unconditionally. Approval only happens through the admin UI.
+`status: 'pending'` unconditionally. Approval happens either from the daily
+digest email or in `/admin`.
 
 ## Stack
 
@@ -145,7 +146,7 @@ Only models missing an announcement are processed — a launch claim doesn't
 change after the fact, so re-reading every page nightly would just spend
 tokens rewriting identical text.
 
-**`02-reality-check-ingest.json`** — every 6 hours. Tracked models → Hacker
+**`02-reality-check-ingest.json`** — daily at 07:00. Tracked models → Hacker
 News *comment* search (comments carry first-hand usage; story titles rarely do)
 → Claude → `POST /api/ingest/reports`. Notes:
 
@@ -157,19 +158,63 @@ News *comment* search (comments carry first-hand usage; story titles rarely do)
   original comment's wording, and asks the model to mark anything that isn't a
   genuine first-hand account as `usable: false`.
 
-Model is `claude-opus-5` at `effort: low`. This is a small classification task
-run at volume — Haiku 4.5 would cost substantially less if that matters more
-than summary quality.
+Both workflows run on `claude-haiku-4-5`. These are small, tightly-constrained
+extraction tasks run at volume, and the schema is enforced by a forced tool
+call rather than by the model's judgement.
+
+Both carry an explicit `America/Denver` timezone. Without it a schedule runs in
+whatever timezone the n8n host happens to have, which is UTC by default — the
+trigger still fires daily, just not at the hour it appears to say.
+
+## Approving reports
+
+Nothing in the REALITY layer reaches the site until a person approves it. There
+are two ways in, and they authorise differently.
+
+**The daily digest email** (`03-review-digest-email.json`, 08:00 — after the
+07:00 ingest, so the morning's haul is already in the queue). n8n calls
+`GET /api/moderation/digest`, which returns what is pending plus a freshly
+signed review link, and mails it. One button opens the queue with no password.
+If nothing is pending, no email is sent — an empty daily email is how you learn
+to ignore the ones that matter.
+
+**`/admin`**, behind the shared password, unchanged. It is the fallback for
+when email breaks, and the two share one `ReviewQueue` component so they cannot
+drift apart.
+
+### Why the link is safe to email
+
+- **Signed, not guessable.** HMAC-SHA256 over the expiry, using a key *derived*
+  from `ADMIN_SESSION_SECRET` with a domain separator rather than the secret
+  itself. Without that separation, a moderation token and a session cookie are
+  both HMACs over a timestamp, and a leaked link could be replayed as a login.
+- **Expires in 72 hours**, carried inside the signed payload — long enough that
+  a Friday email still works on Monday, short enough that an old inbox is not a
+  standing key.
+- **Scoped to the queue.** It can approve or reject pending reports. It is not
+  a login and grants nothing else.
+- **Opening the link changes nothing.** The link is a GET that only renders;
+  approving is a separate POST. This is the point that matters — mail clients
+  and security scanners fetch links in emails before anyone clicks, so a GET
+  that approved a report would let a scanner publish the whole queue on
+  delivery.
+- **Decisions do not replay.** The update is scoped to rows still `pending`, so
+  re-clicking an old link is a no-op rather than a reversal.
+
+The honest trade-off: anyone holding the link can moderate reports for 72
+hours, so the mailbox is now part of the security boundary. The blast radius is
+moderation only — no database access, no settings, nothing published that a
+person did not click.
 
 ## Deployment
 
 1. Create the Neon project; copy the **pooled** connection string.
 2. Create the Vercel project from the repo.
 3. Set `DATABASE_URL`, `ADMIN_PASSWORD_HASH`, `ADMIN_SESSION_SECRET`,
-   `INGEST_API_TOKEN` in Vercel.
+   `INGEST_API_TOKEN`, `PUBLIC_BASE_URL` in Vercel.
 4. Run `npm run db:migrate` against the Neon URL.
 5. Check `GET /api/health` returns `{"ok":true}`.
 6. Add a `CNAME` for `trackai` pointing at Vercel, wherever
    `theaugustdispatch.com`'s nameservers actually resolve — WordPress.com only
    manages DNS if the nameservers point there.
-7. Import the two workflows into n8n and set its environment variables.
+7. Import the three workflows into n8n and attach the credentials.

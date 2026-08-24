@@ -36,6 +36,29 @@ export const env = {
   },
 };
 
+/**
+ * Absolute origin used to build links that leave the app — currently the
+ * signed review links in the daily digest email.
+ *
+ * Must be the real public origin, not a deployment URL: a link built from a
+ * per-deployment hostname still works today but rots the moment that
+ * deployment is superseded. Falls back to Vercel's production URL so a
+ * preview deploy produces something usable rather than throwing.
+ */
+export function publicBaseUrl(): string {
+  const explicit = process.env.PUBLIC_BASE_URL?.trim();
+  if (explicit) return explicit.replace(/\/+$/, "");
+
+  const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
+  if (vercel) return `https://${vercel.replace(/^https?:\/\//, "").replace(/\/+$/, "")}`;
+
+  throw new Error(
+    "Missing required environment variable PUBLIC_BASE_URL. " +
+      "Set it to the site's public origin (e.g. https://trackai.theaugustdispatch.com) " +
+      "in .env.local for local development, or in the Vercel project settings for deployments.",
+  );
+}
+
 /** Non-throwing check used by the health endpoint. */
 export function missingEnvVars(): string[] {
   return [
@@ -43,5 +66,6 @@ export function missingEnvVars(): string[] {
     "ADMIN_PASSWORD_HASH",
     "ADMIN_SESSION_SECRET",
     "INGEST_API_TOKEN",
+    "PUBLIC_BASE_URL",
   ].filter((name) => !process.env[name]);
 }
