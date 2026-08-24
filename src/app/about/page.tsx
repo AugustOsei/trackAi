@@ -91,7 +91,10 @@ export default function AboutPage() {
         <ul className="font-data mt-4 space-y-3 text-sm text-ink-muted">
           <li className="flex items-center gap-3">
             <StatusDot status="rumored" /> Rumored — talked about, nothing
-            official yet.
+            official yet. Sourced from public tech coverage, not the
+            provider, and re-checked daily — a predicted date or summary can
+            change, or the model can simply vanish if the chatter dies down.
+            Replaced entirely the moment a real announcement is found.
           </li>
           <li className="flex items-center gap-3">
             <StatusDot status="announced" /> Announced — the provider has

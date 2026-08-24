@@ -64,13 +64,28 @@ export default async function ModelDetailPage({
 
       <section className="mt-10 rounded-2xl bg-surface p-5 sm:p-6">
         <h2 className="font-display text-xs font-black tracking-[0.15em] text-gold">
-          CLAIM — WHAT {model.provider.toUpperCase()} SAYS
+          {model.announcementUrl
+            ? `CLAIM — WHAT ${model.provider.toUpperCase()} SAYS`
+            : model.rumorSummary
+              ? "RUMORED — WHAT'S BEING SAID"
+              : `CLAIM — WHAT ${model.provider.toUpperCase()} SAYS`}
         </h2>
 
-        {model.providerBlurb ? (
+        {model.announcementUrl ? (
           <p className="mt-4 max-w-2xl text-lg leading-relaxed text-ink">
             {model.providerBlurb}
           </p>
+        ) : model.rumorSummary ? (
+          <>
+            <p className="mt-4 max-w-2xl text-lg leading-relaxed text-ink-muted">
+              {model.rumorSummary}
+            </p>
+            <p className="font-data mt-3 text-xs text-ink-faint">
+              Unconfirmed — based on public chatter, not {model.provider}&rsquo;s own
+              word. Refreshed daily as new information appears, and replaced
+              entirely the moment a real announcement is found.
+            </p>
+          </>
         ) : (
           <p className="mt-4 text-sm text-ink-faint">
             No summary recorded yet.
@@ -110,6 +125,15 @@ export default async function ModelDetailPage({
               className="font-display text-sm font-bold text-gold hover:underline"
             >
               Read {model.provider}&rsquo;s announcement ↗
+            </a>
+          ) : model.rumorSourceUrl ? (
+            <a
+              href={model.rumorSourceUrl}
+              target="_blank"
+              rel="noopener noreferrer nofollow"
+              className="font-data text-xs font-semibold text-ink-muted hover:text-ink"
+            >
+              Where this rumor came from ↗
             </a>
           ) : (
             <span className="font-data text-xs text-ink-faint">

@@ -117,7 +117,14 @@ export async function POST(request: Request) {
         set: {
           name: sql`excluded.name`,
           provider: sql`excluded.provider`,
-          status: sql`excluded.status`,
+          // `status` is deliberately absent from this SET clause. The claim
+          // workflow's payload never includes one — filtered out by Zod's
+          // `.default("released")` — so this used to fire on every existing
+          // model that workflow touched, silently flipping a merely
+          // *announced* model to *released* the moment its announcement
+          // page was found, whether or not it had actually shipped. Status
+          // transitions need their own deliberate signal; enriching a claim
+          // isn't one.
           predictedDate: sql`excluded.predicted_date`,
           actualDate: sql`excluded.actual_date`,
           // Keep an existing human-written blurb if the sync sends nothing.

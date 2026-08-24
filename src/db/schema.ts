@@ -87,6 +87,19 @@ export const models = pgTable(
     /** Set when the blurb was machine-drafted, so the page can say so. */
     summaryIsAutoDrafted: boolean("summary_is_auto_drafted").notNull().default(false),
     claimUpdatedAt: timestamp("claim_updated_at", { withTimezone: true }),
+    /**
+     * The rumor layer — public chatter about a model no provider has
+     * confirmed. Deliberately separate columns from `announcementUrl` /
+     * `providerBlurb`, not just a separate code path writing into them:
+     * those two are read everywhere on the trust that they're the
+     * provider's own words, under a heading that says so. Storing rumor
+     * text there would make that promise false the moment a page rendered
+     * it. `rumorSourceUrl` also keeps the claim-sync workflow's "already
+     * sourced" check (`!announcementUrl`) correct — a model that only ever
+     * had a rumor still reads as needing a real announcement.
+     */
+    rumorSummary: text("rumor_summary"),
+    rumorSourceUrl: text("rumor_source_url"),
 
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     /**

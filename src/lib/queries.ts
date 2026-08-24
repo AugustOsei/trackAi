@@ -107,3 +107,8 @@ export async function getAllModelSlugsForSitemap() {
     .select({ slug: models.slug, claimUpdatedAt: models.claimUpdatedAt })
     .from(models);
 }
+
+/** Name/slug only, for the rumor classifier to match a mention to an existing model. */
+export async function getTrackedModelIdentities() {
+  return db.select({ slug: models.slug, name: models.name }).from(models);
+}
