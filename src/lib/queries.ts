@@ -1,6 +1,6 @@
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { models, reports } from "@/db/schema";
+import { models, reports, subscribers } from "@/db/schema";
 import type { Model, Report } from "@/db/schema";
 
 export async function getTimelineModels(filters: {
@@ -84,4 +84,19 @@ export async function getModelOptionsForSubmit() {
     .select({ id: models.id, name: models.name, provider: models.provider })
     .from(models)
     .orderBy(models.name);
+}
+
+/** Models that haven't appeared in a release-alert digest yet. */
+export async function getUnalertedModels() {
+  return db.query.models.findMany({
+    where: isNull(models.alertedAt),
+    orderBy: [desc(models.createdAt)],
+  });
+}
+
+export async function getConfirmedSubscribers() {
+  return db
+    .select({ id: subscribers.id, email: subscribers.email })
+    .from(subscribers)
+    .where(eq(subscribers.status, "confirmed"));
 }

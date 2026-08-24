@@ -67,5 +67,6 @@ export function missingEnvVars(): string[] {
     "ADMIN_SESSION_SECRET",
     "INGEST_API_TOKEN",
     "PUBLIC_BASE_URL",
+    "N8N_SUBSCRIBE_CONFIRM_WEBHOOK_URL",
   ].filter((name) => !process.env[name]);
 }

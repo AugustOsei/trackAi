@@ -29,6 +29,13 @@
       "when": 1787543358945,
       "tag": "0003_widen_source_type_enum",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1787598907520,
+      "tag": "0004_add_subscribers",
+      "breakpoints": true
     }
   ]
 }

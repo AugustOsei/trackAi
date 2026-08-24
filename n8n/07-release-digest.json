@@ -1,0 +1,161 @@
+{
+  "name": "trackai — release alert digest (SUBSCRIBERS)",
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Denver"
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "triggerAtHour": 6,
+              "triggerAtMinute": 15
+            }
+          ]
+        }
+      },
+      "id": "schedule",
+      "name": "Daily 06:15",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-440, 0]
+    },
+    {
+      "parameters": {
+        "url": "https://trackai.theaugustdispatch.com/api/subscribers/digest",
+        "options": { "timeout": 30000 },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "get-digest",
+      "name": "GET digest",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-220, 0],
+      "credentials": {
+        "httpHeaderAuth": { "id": "RgekZWiaJvwenceq", "name": "trackai — Ingest token" }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 2 },
+          "conditions": [
+            {
+              "id": "has-models",
+              "leftValue": "={{ $json.newModels.length }}",
+              "rightValue": 0,
+              "operator": { "type": "number", "operation": "gt" }
+            },
+            {
+              "id": "has-subs",
+              "leftValue": "={{ $json.subscribers.length }}",
+              "rightValue": 0,
+              "operator": { "type": "number", "operation": "gt" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "gate",
+      "name": "New models, and someone to tell?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// One email per subscriber, sharing the same \"what's new\" list but each\n// carrying that subscriber's own signed unsubscribe link. Escaped here\n// rather than trusted, the same rule the admin digest follows — model\n// blurbs are LLM-drafted from provider pages and could contain characters\n// that would otherwise break the HTML.\nconst d = $input.first().json;\n\nconst esc = (s) =>\n  String(s ?? '')\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;')\n    .replace(/\"/g, '&quot;')\n    .replace(/'/g, '&#39;');\n\nconst STATUS_LABEL = { rumored: 'Rumored', announced: 'Announced', released: 'Released' };\n\nconst rows = d.newModels\n  .map((m) => `\n    <tr><td style=\"padding:12px 0;border-bottom:1px solid #e6e4df;\">\n      <div style=\"font:600 15px/1.4 -apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:#15140f;\">\n        ${esc(m.name)} <span style=\"font-weight:400;color:#6f6b60;\">· ${esc(m.provider)}</span>\n        <span style=\"font:700 10px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:#8a8578;text-transform:uppercase;letter-spacing:.06em;margin-left:6px;\">${esc(STATUS_LABEL[m.status] || m.status)}</span>\n      </div>\n      ${m.providerBlurb ? `<div style=\"font:400 14px/1.5 -apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:#33312a;margin-top:4px;\">${esc(m.providerBlurb).slice(0, 220)}</div>` : ''}\n    </td></tr>`)\n  .join('');\n\nconst n = d.newModels.length;\nconst subject = `trackai — ${n} new model${n === 1 ? '' : 's'} on the timeline`;\n\nconst htmlFor = (unsubscribeUrl) => `<!doctype html><html><body style=\"margin:0;padding:0;background:#faf9f6;\">\n  <table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#faf9f6;padding:28px 12px;\">\n    <tr><td align=\"center\">\n      <table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:560px;background:#ffffff;border-radius:14px;padding:26px;\">\n        <tr><td>\n          <div style=\"font:800 21px/1.2 -apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:#15140f;\">${n} new on the timeline</div>\n          <div style=\"font:400 14px/1.5 -apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:#6f6b60;margin-top:5px;\">Rumored, announced, or released — whatever showed up since your last update.</div>\n        </td></tr>\n        <tr><td><table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin-top:6px;\">${rows}</table></td></tr>\n        <tr><td style=\"padding-top:22px;\">\n          <a href=\"https://trackai.theaugustdispatch.com\" style=\"display:inline-block;background:#e8b73a;color:#1a1710;text-decoration:none;font:700 15px/1 -apple-system,Segoe UI,Helvetica,Arial,sans-serif;padding:14px 26px;border-radius:999px;\">See the timeline</a>\n        </td></tr>\n        <tr><td style=\"padding-top:20px;\">\n          <a href=\"${esc(unsubscribeUrl)}\" style=\"font:400 12px/1.5 -apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:#8a8578;\">Unsubscribe from release alerts</a>\n        </td></tr>\n      </table>\n    </td></tr>\n  </table>\n</body></html>`;\n\nreturn d.subscribers.map((s) => ({\n  json: { email: s.email, subject, html: htmlFor(s.unsubscribeUrl) },\n}));"
+      },
+      "id": "compose",
+      "name": "Build per-subscriber emails",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, -120]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.email }}",
+        "subject": "={{ $json.subject }}",
+        "message": "={{ $json.html }}",
+        "options": { "appendAttribution": false }
+      },
+      "id": "send",
+      "name": "Send email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [440, -120],
+      "credentials": {
+        "gmailOAuth2": { "id": "XSli9zjeTSRhQNLt", "name": "Gmail account" }
+      }
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "id": "aggregate",
+      "name": "Wait for every send",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [660, -120]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Only reached once every Gmail send above has completed — mark the\n// models as alerted now, not before, so a failed send would leave them\n// eligible for tomorrow's run instead of silently vanishing.\nconst ids = $('GET digest').first().json.newModels.map((m) => m.id);\nreturn [{ json: { modelIds: ids } }];"
+      },
+      "id": "build-mark-sent",
+      "name": "Build mark-sent payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, -120]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://trackai.theaugustdispatch.com/api/subscribers/digest/sent",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": { "timeout": 30000 },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "mark-sent",
+      "name": "POST mark sent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, -120],
+      "credentials": {
+        "httpHeaderAuth": { "id": "RgekZWiaJvwenceq", "name": "trackai — Ingest token" }
+      }
+    }
+  ],
+  "connections": {
+    "Daily 06:15": {
+      "main": [[{ "node": "GET digest", "type": "main", "index": 0 }]]
+    },
+    "GET digest": {
+      "main": [[{ "node": "New models, and someone to tell?", "type": "main", "index": 0 }]]
+    },
+    "New models, and someone to tell?": {
+      "main": [[{ "node": "Build per-subscriber emails", "type": "main", "index": 0 }], []]
+    },
+    "Build per-subscriber emails": {
+      "main": [[{ "node": "Send email", "type": "main", "index": 0 }]]
+    },
+    "Send email": {
+      "main": [[{ "node": "Wait for every send", "type": "main", "index": 0 }]]
+    },
+    "Wait for every send": {
+      "main": [[{ "node": "Build mark-sent payload", "type": "main", "index": 0 }]]
+    },
+    "Build mark-sent payload": {
+      "main": [[{ "node": "POST mark sent", "type": "main", "index": 0 }]]
+    }
+  }
+}

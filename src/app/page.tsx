@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getTimelineModels, getProviders } from "@/lib/queries";
 import { MilestoneTimeline } from "@/components/milestone-timeline";
+import { HowItWorks } from "@/components/how-it-works";
 import type { Model } from "@/db/schema";
 
 export const dynamic = "force-dynamic";
@@ -88,6 +89,7 @@ export default async function TimelinePage({
       </div>
 
       <MilestoneTimeline models={models} />
+      <HowItWorks />
     </div>
   );
 }

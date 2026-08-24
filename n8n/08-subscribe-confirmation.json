@@ -1,0 +1,61 @@
+{
+  "name": "trackai — subscribe confirmation email (SUBSCRIBERS)",
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Denver"
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "trackai-subscribe-confirm",
+        "authentication": "headerAuth",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Signup webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "webhookId": "trackai-subscribe-confirm",
+      "position": [-220, 0],
+      "credentials": {
+        "httpHeaderAuth": { "id": "RgekZWiaJvwenceq", "name": "trackai — Ingest token" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// The web app calls this synchronously and waits up to 8s, so keep this\n// side simple: build the email, no branching. Trackai's server already\n// validated the email format before this webhook was ever called.\nconst body = $input.first().json.body ?? {};\nconst esc = (s) =>\n  String(s ?? '')\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;')\n    .replace(/\"/g, '&quot;')\n    .replace(/'/g, '&#39;');\n\nconst html = `<!doctype html><html><body style=\"margin:0;padding:0;background:#faf9f6;\">\n  <table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#faf9f6;padding:28px 12px;\">\n    <tr><td align=\"center\">\n      <table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:520px;background:#ffffff;border-radius:14px;padding:26px;\">\n        <tr><td>\n          <div style=\"font:800 21px/1.2 -apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:#15140f;\">Confirm your release alerts</div>\n          <div style=\"font:400 14px/1.5 -apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:#6f6b60;margin-top:8px;\">One click and you'll hear about new AI model releases as trackai tracks them — rumored, announced, or shipped.</div>\n        </td></tr>\n        <tr><td style=\"padding-top:22px;\">\n          <a href=\"${esc(body.confirmUrl)}\" style=\"display:inline-block;background:#e8b73a;color:#1a1710;text-decoration:none;font:700 15px/1 -apple-system,Segoe UI,Helvetica,Arial,sans-serif;padding:14px 26px;border-radius:999px;\">Confirm subscription</a>\n        </td></tr>\n        <tr><td style=\"padding-top:20px;\">\n          <div style=\"font:400 12px/1.5 -apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:#8a8578;\">This link expires in 72 hours. Didn't request this? Ignore it — nothing is sent unless it's clicked.</div>\n        </td></tr>\n      </table>\n    </td></tr>\n  </table>\n</body></html>`;\n\nreturn [{ json: { email: body.email, html } }];"
+      },
+      "id": "compose",
+      "name": "Compose confirmation email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.email }}",
+        "subject": "Confirm your trackai release alerts",
+        "message": "={{ $json.html }}",
+        "options": { "appendAttribution": false }
+      },
+      "id": "send",
+      "name": "Send confirmation email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [220, 0],
+      "credentials": {
+        "gmailOAuth2": { "id": "XSli9zjeTSRhQNLt", "name": "Gmail account" }
+      }
+    }
+  ],
+  "connections": {
+    "Signup webhook": {
+      "main": [[{ "node": "Compose confirmation email", "type": "main", "index": 0 }]]
+    },
+    "Compose confirmation email": {
+      "main": [[{ "node": "Send confirmation email", "type": "main", "index": 0 }]]
+    }
+  }
+}

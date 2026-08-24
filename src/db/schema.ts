@@ -52,6 +52,12 @@ export const reportStatusEnum = pgEnum("report_status", [
   "rejected",
 ]);
 
+export const subscriberStatusEnum = pgEnum("subscriber_status", [
+  "pending",
+  "confirmed",
+  "unsubscribed",
+]);
+
 export const models = pgTable(
   "models",
   {
@@ -83,10 +89,19 @@ export const models = pgTable(
     claimUpdatedAt: timestamp("claim_updated_at", { withTimezone: true }),
 
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    /**
+     * Set once this model has appeared in a release-alert digest. Not tied
+     * to `status`, which the claim sync can still update after the fact —
+     * this only ever needs to answer "has a subscriber been told about this
+     * row existing yet," which `createdAt` alone can't, since it doesn't
+     * change on update.
+     */
+    alertedAt: timestamp("alerted_at", { withTimezone: true }),
   },
   (table) => [
     index("models_status_idx").on(table.status),
     index("models_provider_idx").on(table.provider),
+    index("models_alerted_idx").on(table.alertedAt),
   ],
 );
 
@@ -128,6 +143,26 @@ export const submissionAttempts = pgTable(
   (table) => [index("submission_attempts_ip_time_idx").on(table.ipHash, table.createdAt)],
 );
 
+/**
+ * Release-alert subscribers. Double opt-in — a row starts `pending` and only
+ * becomes `confirmed` once the address itself clicks the link sent to it, so
+ * the digest never mails someone who was signed up by a stranger typing in
+ * their address. `unsubscribed` rows are kept rather than deleted, so a
+ * resubmitted email doesn't silently re-enroll someone who opted out.
+ */
+export const subscribers = pgTable(
+  "subscribers",
+  {
+    id: serial("id").primaryKey(),
+    email: varchar("email", { length: 320 }).notNull().unique(),
+    status: subscriberStatusEnum("status").notNull().default("pending"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+    unsubscribedAt: timestamp("unsubscribed_at", { withTimezone: true }),
+  },
+  (table) => [index("subscribers_status_idx").on(table.status)],
+);
+
 export const modelsRelations = relations(models, ({ many }) => ({
   reports: many(reports),
 }));
@@ -143,3 +178,5 @@ export type Model = typeof models.$inferSelect;
 export type NewModel = typeof models.$inferInsert;
 export type Report = typeof reports.$inferSelect;
 export type NewReport = typeof reports.$inferInsert;
+export type Subscriber = typeof subscribers.$inferSelect;
+export type NewSubscriber = typeof subscribers.$inferInsert;
