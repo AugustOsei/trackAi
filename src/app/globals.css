@@ -175,6 +175,96 @@ body {
   }
 }
 
+/* Logo mark: one dot splits into three, holds, and merges back. The middle
+   dot is the resting "." and never moves — only the outer two travel, so the
+   idle state (reduced motion, or between keyframe iterations) is pixel-
+   identical to the plain period this replaced. */
+.logo-dots {
+  position: relative;
+  display: inline-block;
+  width: 1.1em;
+  height: 1em;
+  vertical-align: -0.08em;
+}
+
+.logo-dot {
+  position: absolute;
+  bottom: 0.02em;
+  left: 50%;
+  width: 0.22em;
+  height: 0.22em;
+  margin-left: -0.11em;
+  border-radius: 50%;
+  background: var(--color-gold);
+}
+
+.logo-dot-left,
+.logo-dot-right {
+  transform: translateX(0) scale(0);
+  opacity: 0;
+}
+
+@keyframes logo-dot-left {
+  0%,
+  15% {
+    transform: translateX(0) scale(0);
+    opacity: 0;
+  }
+  35%,
+  65% {
+    transform: translateX(-0.42em) scale(1);
+    opacity: 1;
+  }
+  85%,
+  100% {
+    transform: translateX(0) scale(0);
+    opacity: 0;
+  }
+}
+
+@keyframes logo-dot-right {
+  0%,
+  15% {
+    transform: translateX(0) scale(0);
+    opacity: 0;
+  }
+  35%,
+  65% {
+    transform: translateX(0.42em) scale(1);
+    opacity: 1;
+  }
+  85%,
+  100% {
+    transform: translateX(0) scale(0);
+    opacity: 0;
+  }
+}
+
+@keyframes logo-dot-mid {
+  0%,
+  15%,
+  85%,
+  100% {
+    transform: scale(1);
+  }
+  35%,
+  65% {
+    transform: scale(0.8);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .logo-dot-left {
+    animation: logo-dot-left 5s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+  }
+  .logo-dot-right {
+    animation: logo-dot-right 5s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+  }
+  .logo-dot-mid {
+    animation: logo-dot-mid 5s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+  }
+}
+
 .timeline-scroll {
   scrollbar-width: thin;
   scrollbar-color: var(--color-hairline) transparent;

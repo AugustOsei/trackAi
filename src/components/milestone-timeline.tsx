@@ -40,6 +40,8 @@ export function MilestoneTimeline({ models }: { models: TimelineModel[] }) {
   const contentRef = useRef<HTMLDivElement>(null);
   const todayRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
+  const [rolling, setRolling] = useState(false);
+  const rollFrame = useRef<number | null>(null);
   const [edge, setEdge] = useState({ top: true, bottom: false });
 
   const { rows, rangeLabel } = useMemo(() => {
@@ -121,14 +123,93 @@ export function MilestoneTimeline({ models }: { models: TimelineModel[] }) {
     });
   }, []);
 
-  // Open centred on today, without dragging the whole page along with it.
-  useEffect(() => {
+  // Slot-machine settle: starts from the oldest entry in view and spins down
+  // to today, decelerating with a slight mechanical overshoot rather than
+  // gliding to a stop. `startTop` lets the mount effect and the Roll button
+  // share one implementation — mount always starts from 0, the button
+  // rewinds to 0 first so a replay always reads the same "past to present"
+  // motion rather than animating from wherever the reader had scrolled to.
+  const roll = useCallback((startTop: number) => {
     const el = scrollRef.current;
     const marker = todayRef.current;
+    const content = contentRef.current;
     if (!el || !marker) return;
-    el.scrollTop = Math.max(0, marker.offsetTop - el.clientHeight / 2);
-    syncEdges();
+    if (rollFrame.current !== null) return; // already rolling
+
+    const target = Math.max(0, marker.offsetTop - el.clientHeight / 2);
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    el.scrollTop = startTop;
+
+    if (reduced) {
+      el.scrollTop = target;
+      syncEdges();
+      return;
+    }
+
+    // Deferred via rAF rather than called directly: this function can run
+    // synchronously from the mount effect, and setState belongs in an actual
+    // async platform callback, not the effect body itself.
+    requestAnimationFrame(() => setRolling(true));
+    const duration = 1700;
+    const startTime = performance.now();
+    let prevTop = startTop;
+
+    // Mild overshoot-then-settle, the signature of a mechanical reel rather
+    // than a scroll that simply glides to a stop.
+    const easeOutBack = (x: number) => {
+      const c1 = 1.15;
+      const c3 = c1 + 1;
+      return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2);
+    };
+
+    const tick = (now: number) => {
+      const progress = Math.min(1, (now - startTime) / duration);
+      const eased = progress < 1 ? easeOutBack(progress) : 1;
+      const top = startTop + (target - startTop) * eased;
+      el.scrollTop = top;
+
+      // Blur tracks actual per-frame speed, so it reads as motion blur on a
+      // spinning reel and fades on its own as the roll slows toward target —
+      // no separate easing curve to keep in sync with the scroll one.
+      if (content) {
+        const speed = Math.abs(top - prevTop);
+        content.style.filter = speed > 0.5 ? `blur(${Math.min(3, speed * 0.12)}px)` : "";
+      }
+      prevTop = top;
+
+      if (progress < 1) {
+        rollFrame.current = requestAnimationFrame(tick);
+      } else {
+        el.scrollTop = target;
+        if (content) content.style.filter = "";
+        rollFrame.current = null;
+        setRolling(false);
+        syncEdges();
+      }
+    };
+
+    rollFrame.current = requestAnimationFrame(tick);
   }, [syncEdges]);
+
+  // Plays once on every arrival at the homepage — not gated behind scroll or
+  // interaction, same as the site's other entrance choreography.
+  useEffect(() => {
+    roll(0);
+    return () => {
+      // Reset the ref, not just cancel the frame — otherwise React Strict
+      // Mode's dev-only double-invoke (mount, cleanup, mount again) leaves
+      // rollFrame.current non-null from the cancelled first attempt, and the
+      // in-progress guard at the top of roll() blocks the second mount's
+      // call from ever starting.
+      if (rollFrame.current !== null) {
+        cancelAnimationFrame(rollFrame.current);
+        rollFrame.current = null;
+      }
+      setRolling(false);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const scrollByPage = useCallback((dir: 1 | -1) => {
     const el = scrollRef.current;
@@ -136,21 +217,12 @@ export function MilestoneTimeline({ models }: { models: TimelineModel[] }) {
     el.scrollBy({ top: dir * el.clientHeight * 0.75, behavior: "smooth" });
   }, []);
 
-  const jumpToToday = useCallback(() => {
-    const el = scrollRef.current;
-    const marker = todayRef.current;
-    if (!el || !marker) return;
-    el.scrollTo({
-      top: Math.max(0, marker.offsetTop - el.clientHeight / 2),
-      behavior: "smooth",
-    });
-  }, []);
-
   // Grab-and-drag panning, mouse only — touch already has native momentum.
   const drag = useRef({ startY: 0, startTop: 0, moved: false });
 
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     if (e.pointerType !== "mouse" || e.button !== 0) return;
+    if (rollFrame.current !== null) return; // don't fight an in-progress roll
     const el = scrollRef.current;
     if (!el) return;
     drag.current = { startY: e.clientY, startTop: el.scrollTop, moved: false };
@@ -194,13 +266,14 @@ export function MilestoneTimeline({ models }: { models: TimelineModel[] }) {
         <div className="flex items-center gap-1.5">
           <button
             type="button"
-            onClick={jumpToToday}
-            className="font-display rounded-full bg-surface px-3 py-1.5 text-[11px] font-bold text-ink-muted transition-colors hover:bg-gold hover:text-gold-fg"
+            onClick={() => roll(0)}
+            disabled={rolling}
+            className="font-display rounded-full bg-surface px-3 py-1.5 text-[11px] font-bold text-ink-muted transition-colors hover:bg-gold hover:text-gold-fg disabled:opacity-50 disabled:hover:bg-surface disabled:hover:text-ink-muted"
           >
-            Today
+            Roll
           </button>
-          <NavButton dir="up" disabled={edge.top} onClick={() => scrollByPage(-1)} />
-          <NavButton dir="down" disabled={edge.bottom} onClick={() => scrollByPage(1)} />
+          <NavButton dir="up" disabled={edge.top || rolling} onClick={() => scrollByPage(-1)} />
+          <NavButton dir="down" disabled={edge.bottom || rolling} onClick={() => scrollByPage(1)} />
         </div>
       </div>
 
@@ -211,7 +284,7 @@ export function MilestoneTimeline({ models }: { models: TimelineModel[] }) {
           onPointerDown={onPointerDown}
           onClickCapture={onClickCapture}
           className={`timeline-scroll h-[62vh] max-h-[680px] min-h-[420px] overflow-y-auto overscroll-contain px-4 sm:px-6 ${
-            dragging ? "cursor-grabbing select-none" : "cursor-grab"
+            rolling ? "pointer-events-none" : dragging ? "cursor-grabbing select-none" : "cursor-grab"
           }`}
         >
           <div ref={contentRef} className="relative py-6">

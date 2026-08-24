@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LogoDots } from "@/components/logo-dots";
 
 const LINKS = [
   { href: "/", label: "Timeline" },
@@ -15,7 +16,8 @@ export function SiteNav() {
           href="/"
           className="font-display text-2xl font-black tracking-tight text-ink"
         >
-          trackai<span className="text-gold">.</span>
+          trackai
+          <LogoDots />
         </Link>
         <nav aria-label="Primary" className="flex flex-wrap items-center gap-1">
           {LINKS.map((link) => (
