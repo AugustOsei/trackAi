@@ -23,7 +23,7 @@ export function rumorSystemPrompt(trackedModels: { slug: string; name: string }[
 Already-tracked models (slug — name), so you reuse a slug instead of creating a near-duplicate:
 ${known}
 
-For each model the article NAMES BY NAME (not "OpenAI's next model" — an actual name or version, e.g. "GPT-6", "Qwen4", "Claude Opus 6"):
+For each model the article NAMES BY NAME (not "OpenAI's next model" — an actual name or version, e.g. "GPT-6", "Qwen4", "Claude Opus 6"), up to 3 per article:
 
 - If it matches an already-tracked model, reuse that exact slug.
 - If it's genuinely new, invent a slug: lowercase, hyphens only, matching the style of the existing ones above (e.g. "gpt-6", "qwen-4").
@@ -44,7 +44,6 @@ export const RUMOR_TOOL = {
     properties: {
       rumors: {
         type: "array",
-        maxItems: 3,
         items: {
           type: "object",
           properties: {
