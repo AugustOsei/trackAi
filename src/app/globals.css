@@ -159,6 +159,55 @@ body {
   animation: timeline-float 4.5s ease-in-out infinite both;
 }
 
+/* Roll button: mostly idle, with a brief wiggle-and-glow once per cycle so
+   a first-time visitor notices there's something to click. Stops for good
+   the moment it's actually clicked — see the component for that logic. */
+@keyframes roll-hint-wiggle {
+  0%,
+  80% {
+    transform: rotate(0deg);
+    box-shadow: 0 0 0 0 rgba(245, 197, 24, 0);
+  }
+  85% {
+    transform: rotate(-10deg);
+    box-shadow: 0 0 0 4px rgba(245, 197, 24, 0.35);
+  }
+  90% {
+    transform: rotate(8deg);
+  }
+  95% {
+    transform: rotate(-4deg);
+    box-shadow: 0 0 0 2px rgba(245, 197, 24, 0.18);
+  }
+  100% {
+    transform: rotate(0deg);
+    box-shadow: 0 0 0 0 rgba(245, 197, 24, 0);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .roll-hint-wiggle {
+    animation: roll-hint-wiggle 6s ease-in-out infinite;
+  }
+}
+
+@keyframes roll-hint-callout {
+  0%,
+  100% {
+    opacity: 0;
+    transform: translate(-50%, 4px);
+  }
+  15%,
+  85% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.roll-hint-callout {
+  animation: roll-hint-callout 3.5s ease-in-out both;
+}
+
 /* Trail fades in from the spine and lands solid on the icon, rather than
    reading as a flat colored bar. Direction flips for left-side entries,
    but only at the breakpoint where they actually sit left of the spine. */

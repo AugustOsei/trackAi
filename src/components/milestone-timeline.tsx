@@ -41,6 +41,13 @@ export function MilestoneTimeline({ models }: { models: TimelineModel[] }) {
   const todayRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
   const [rolling, setRolling] = useState(false);
+  // First-visit nudge toward the Roll button: a one-time "click to roll
+  // again" callout, and a subtle idle wiggle that stops for good the first
+  // time someone actually clicks it. Not a recurring nag — the point is to
+  // be noticed once, not to pester a returning visitor forever.
+  const [showRollHint, setShowRollHint] = useState(false);
+  const [hasManuallyRolled, setHasManuallyRolled] = useState(false);
+  const hintShownRef = useRef(false);
   const rollFrame = useRef<number | null>(null);
   const [edge, setEdge] = useState({ top: true, bottom: false });
 
@@ -188,6 +195,14 @@ export function MilestoneTimeline({ models }: { models: TimelineModel[] }) {
         rollFrame.current = null;
         setRolling(false);
         syncEdges();
+
+        // Only the very first roll to ever finish triggers the hint —
+        // whichever that is, mount's auto-roll or a fast manual click.
+        if (!hintShownRef.current) {
+          hintShownRef.current = true;
+          setShowRollHint(true);
+          setTimeout(() => setShowRollHint(false), 3500);
+        }
       }
     };
 
@@ -266,14 +281,31 @@ export function MilestoneTimeline({ models }: { models: TimelineModel[] }) {
           {rangeLabel}
         </span>
         <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => roll(0)}
-            disabled={rolling}
-            className="font-display rounded-full bg-surface px-3 py-1.5 text-[11px] font-bold text-ink-muted transition-colors hover:bg-gold hover:text-gold-fg disabled:opacity-50 disabled:hover:bg-surface disabled:hover:text-ink-muted"
-          >
-            Roll
-          </button>
+          <div className="relative">
+            {showRollHint && (
+              <span
+                role="presentation"
+                className="font-display roll-hint-callout pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-gold px-2.5 py-1 text-[10px] font-bold text-gold-fg"
+              >
+                Click to roll again
+                <span className="absolute top-full left-1/2 -ml-1 h-0 w-0 border-x-4 border-t-4 border-x-transparent border-t-gold" />
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setHasManuallyRolled(true);
+                setShowRollHint(false);
+                roll(0);
+              }}
+              disabled={rolling}
+              className={`font-display rounded-full bg-surface px-3 py-1.5 text-[11px] font-bold text-ink-muted transition-colors hover:bg-gold hover:text-gold-fg disabled:opacity-50 disabled:hover:bg-surface disabled:hover:text-ink-muted ${
+                !hasManuallyRolled && !rolling ? "roll-hint-wiggle" : ""
+              }`}
+            >
+              Roll
+            </button>
+          </div>
           <NavButton dir="up" disabled={edge.top || rolling} onClick={() => scrollByPage(-1)} />
           <NavButton dir="down" disabled={edge.bottom || rolling} onClick={() => scrollByPage(1)} />
         </div>

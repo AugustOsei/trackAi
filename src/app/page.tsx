@@ -54,9 +54,14 @@ export default async function TimelinePage({
         </p>
       </div>
 
-      {/* One scrollable row on small screens — with a dozen-plus providers,
-          wrapping pills would otherwise push the timeline off the fold. */}
-      <div className="timeline-scroll -mx-4 mt-10 flex snap-x items-center gap-2 overflow-x-auto px-4 pb-2 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
+      <MilestoneTimeline models={models} />
+
+      {/* Filters sit below the grid, not above it — most visitors want the
+          timeline itself first, and most filter combinations narrow the
+          grid down to little or nothing anyway. One scrollable row on small
+          screens: with a dozen-plus providers, wrapping pills would push
+          things too far down the page. */}
+      <div className="timeline-scroll -mx-4 mt-6 flex snap-x items-center gap-2 overflow-x-auto px-4 pb-2 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
         {STATUSES.map((s) => (
           <Link
             key={s.value}
@@ -92,7 +97,6 @@ export default async function TimelinePage({
         ))}
       </div>
 
-      <MilestoneTimeline models={models} />
       <HowItWorks />
     </div>
   );
