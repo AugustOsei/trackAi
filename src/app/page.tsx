@@ -40,15 +40,17 @@ export default async function TimelinePage({
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
       <div className="max-w-2xl">
         <h1 className="font-display text-5xl font-black leading-[0.92] tracking-tight text-ink sm:text-6xl">
-          Track AI model releases,
+          Track AI model releases
           <br />
-          <span className="text-gold">including the ones still just a rumor.</span>
-        </h1>
-        <p className="mt-5 text-lg text-ink-muted">
-          <span className="font-display mr-2 inline-block -rotate-3 rounded-full bg-gold px-3 py-1 align-middle text-base font-black tracking-wide text-gold-fg shadow-[0_3px_0_rgba(0,0,0,0.35)]">
+          <span className="font-display mr-3 inline-block -rotate-3 rounded-2xl bg-gold px-4 py-1 align-middle text-3xl tracking-wide text-gold-fg shadow-[0_4px_0_rgba(0,0,0,0.35)] sm:text-4xl">
             AND
           </span>
-          see what real people found when they actually tried each one.
+          see what people found trying them.
+        </h1>
+        <p className="mt-5 text-lg text-ink-muted">
+          We track every model we know about, from confirmed releases to
+          early rumors, and collect what real people found after actually
+          trying each one.
         </p>
       </div>
 
