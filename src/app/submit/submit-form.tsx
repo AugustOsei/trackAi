@@ -121,8 +121,8 @@ export function SubmitForm({
           className={`font-data ${fieldClass}`}
         />
         <p className="mt-1.5 text-xs text-ink-faint">
-          A post, thread, or write-up that backs this up — we link to it, we
-          don’t reproduce it.
+          A post, thread, or write-up that backs this up. We link to it, and
+          if it&rsquo;s a post on X, it shows up right on the page too.
         </p>
       </div>
 

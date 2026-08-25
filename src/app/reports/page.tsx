@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export const metadata = pageMetadata({
   title: "Reports",
   description:
-    "Every reviewed reality-check report, newest first — how AI models actually perform on real tasks, sourced from Hacker News, developer forums, and YouTube.",
+    "Every reviewed reality-check report, newest first. How AI models actually perform on real tasks, sourced from Hacker News, developer forums, YouTube, and X.",
 });
 
 export default async function ReportsFeedPage({ searchParams }: PageProps<"/reports">) {

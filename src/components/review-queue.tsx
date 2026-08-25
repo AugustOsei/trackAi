@@ -1,7 +1,9 @@
 import { ProviderBadge } from "@/components/provider-badge";
 import { TaskTag } from "@/components/task-tag";
 import { SourceTag } from "@/components/source-tag";
+import { TweetEmbed } from "@/components/tweet-embed";
 import { formatDate } from "@/lib/format";
+import { tweetIdFromUrl } from "@/lib/sources";
 import type { getPendingReports } from "@/lib/queries";
 
 type PendingReport = Awaited<ReturnType<typeof getPendingReports>>[number];
@@ -28,7 +30,9 @@ export function ReviewQueue({
 
   return (
     <div className="mt-8 space-y-4">
-      {pending.map((report) => (
+      {pending.map((report) => {
+        const tweetId = tweetIdFromUrl(report.sourceUrl);
+        return (
         <div key={report.id} className="rounded-2xl bg-surface p-5">
           <div className="flex items-start gap-3">
             <ProviderBadge provider={report.model.provider} size="md" />
@@ -38,6 +42,10 @@ export function ReviewQueue({
             </div>
             <TaskTag category={report.taskCategory} />
           </div>
+
+          {/* The real post, so a decision isn't made from the paraphrase
+              alone — worth the most exactly here, before approving. */}
+          {tweetId && <TweetEmbed tweetId={tweetId} url={report.sourceUrl} />}
 
           <div className="font-data mt-3 flex flex-wrap items-center gap-3 text-xs text-ink-muted">
             <SourceTag sourceType={report.sourceType} sourceUrl={report.sourceUrl} />
@@ -63,7 +71,8 @@ export function ReviewQueue({
             </form>
           </div>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

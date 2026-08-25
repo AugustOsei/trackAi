@@ -43,6 +43,13 @@
       "when": 1787613424949,
       "tag": "0005_add_rumor_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1787618746523,
+      "tag": "0006_add_twitter_source",
+      "breakpoints": true
     }
   ]
 }

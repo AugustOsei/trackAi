@@ -2,7 +2,9 @@ import Link from "next/link";
 import { ProviderBadge } from "@/components/provider-badge";
 import { TaskTag } from "@/components/task-tag";
 import { SourceTag } from "@/components/source-tag";
+import { TweetEmbed } from "@/components/tweet-embed";
 import { formatDate } from "@/lib/format";
+import { tweetIdFromUrl } from "@/lib/sources";
 import type { Model, Report } from "@/db/schema";
 
 export function ReportCard({
@@ -14,6 +16,8 @@ export function ReportCard({
   model?: Pick<Model, "name" | "slug" | "provider">;
   showModel?: boolean;
 }) {
+  const tweetId = tweetIdFromUrl(report.sourceUrl);
+
   return (
     <article className="reveal-on-scroll rounded-2xl bg-surface p-4 sm:p-5">
       <div className="flex items-start gap-3">
@@ -33,6 +37,8 @@ export function ReportCard({
         </div>
         <TaskTag category={report.taskCategory} />
       </div>
+
+      {tweetId && <TweetEmbed tweetId={tweetId} url={report.sourceUrl} />}
 
       <div className="font-data mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-hairline pt-3 text-xs text-ink-muted">
         <SourceTag sourceType={report.sourceType} sourceUrl={report.sourceUrl} />

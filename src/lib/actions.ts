@@ -21,6 +21,7 @@ import {
   verifyUnsubscribeToken,
 } from "@/lib/subscribe-token";
 import { publicBaseUrl } from "@/lib/env";
+import { tweetIdFromUrl } from "@/lib/sources";
 
 const submitSchema = z.object({
   modelId: z.coerce.number().int().positive(),
@@ -69,7 +70,7 @@ export async function submitReport(
       taskCategory: parsed.data.taskCategory,
       takeaway: parsed.data.takeaway,
       sourceUrl: parsed.data.sourceUrl,
-      sourceType: "manual",
+      sourceType: tweetIdFromUrl(parsed.data.sourceUrl) ? "twitter" : "manual",
       status: "pending",
     });
   } catch (err: unknown) {

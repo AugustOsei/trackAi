@@ -43,6 +43,7 @@ export const sourceTypeEnum = pgEnum("source_type", [
   "reddit",
   "youtube",
   "forum",
+  "twitter",
   "manual",
 ]);
 
