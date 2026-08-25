@@ -40,13 +40,12 @@ export default async function TimelinePage({
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
       <div className="max-w-2xl">
         <h1 className="font-display text-5xl font-black leading-[0.92] tracking-tight text-ink sm:text-6xl">
-          Every release.
+          Track every AI model release,
           <br />
-          <span className="text-gold">Every claim, tested.</span>
+          <span className="text-gold">including the ones still just a rumor.</span>
         </h1>
         <p className="mt-4 text-lg text-ink-muted">
-          Providers publish the benchmark. We publish what happened when
-          someone actually tried it.
+          See what real people found when they actually tried each one.
         </p>
       </div>
 
