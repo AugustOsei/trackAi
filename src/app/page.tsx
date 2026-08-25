@@ -45,13 +45,8 @@ export default async function TimelinePage({
           <span className="font-display mr-3 inline-block -rotate-3 rounded-2xl bg-gold px-4 py-1 align-middle text-3xl tracking-wide text-gold-fg shadow-[0_4px_0_rgba(0,0,0,0.35)] sm:text-4xl">
             AND
           </span>
-          see what people found trying them.
+          see what testers are doing with it.
         </h1>
-        <p className="mt-5 text-lg text-ink-muted">
-          We track every model we know about, from confirmed releases to
-          early rumors, and collect what real people found after actually
-          trying each one.
-        </p>
       </div>
 
       <MilestoneTimeline models={models} />
