@@ -44,8 +44,11 @@ export default async function TimelinePage({
           <br />
           <span className="text-gold">including the ones still just a rumor.</span>
         </h1>
-        <p className="mt-4 text-lg text-ink-muted">
-          And see what real people found when they actually tried each one.
+        <p className="mt-5 text-lg text-ink-muted">
+          <span className="font-display mr-2 inline-block -rotate-3 rounded-full bg-gold px-3 py-1 align-middle text-base font-black tracking-wide text-gold-fg shadow-[0_3px_0_rgba(0,0,0,0.35)]">
+            AND
+          </span>
+          see what real people found when they actually tried each one.
         </p>
       </div>
 
