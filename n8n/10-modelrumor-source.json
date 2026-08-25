@@ -1,0 +1,75 @@
+{
+  "name": "trackai — modelrumor.com source (CLAIM layer, unconfirmed)",
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Denver"
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "days", "triggerAtHour": 5, "triggerAtMinute": 30 }
+          ]
+        }
+      },
+      "id": "schedule",
+      "name": "Daily 05:30",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-440, 0]
+    },
+    {
+      "parameters": {
+        "url": "https://modelrumor.com",
+        "options": { "timeout": 20000 }
+      },
+      "id": "fetch",
+      "name": "GET modelrumor.com",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-220, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// modelrumor.com renders its whole timeline server-side as one page, each\n// entry a `.rumor-stop` element carrying data-model / data-date /\n// data-released attributes — the same structured data their own published\n// Skill (modelrumor.com/skills/show-next-week-model-rumors/SKILL.md) reads,\n// so this is the one part of their markup they've committed to keeping\n// stable. No LLM step needed here: unlike the news-feed source, this data\n// arrives already extracted, just needs parsing and our own field names.\n//\n// aria-label is consistently `${provider} ${data-model}, ${their own\n// confidence note}` — provider is recovered by finding where the known\n// data-model text starts inside it, not by guessing a word-count split.\nconst html = $json.data ?? $json.body ?? (typeof $json === 'string' ? $json : '');\n\nconst re = /aria-label=\"([^\"]*)\" data-model=\"([^\"]*)\" data-date=\"([^\"]*)\" data-released=\"([^\"]*)\"/g;\nconst rows = [];\nlet m;\nwhile ((m = re.exec(html))) {\n  const [, ariaLabel, dataModel, dataDate, released] = m;\n  if (released !== 'false') continue; // only the unreleased tier — a\n  // model this site says has already shipped isn't this pipeline's job.\n\n  const idx = ariaLabel.indexOf(dataModel);\n  if (idx <= 0) continue; // pattern didn't match what we expect; skip rather than guess\n  const provider = ariaLabel.slice(0, idx).trim();\n  const afterModel = ariaLabel.slice(idx + dataModel.length);\n  const note = afterModel.replace(/^,\\s*/, '').trim();\n\n  const name = dataModel.trim();\n  const slug = name\n    .toLowerCase()\n    .replace(/[^a-z0-9]+/g, '-')\n    .replace(/^-+|-+$/g, '');\n\n  if (!provider || !name || !slug) continue;\n  if (/^(unknown|n\\/?a|none|tbd|<.*>)$/i.test(provider)) continue;\n  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(dataDate)) continue;\n\n  rows.push({\n    name,\n    slug,\n    provider,\n    predictedDate: dataDate,\n    summary: `Tracked by modelrumor.com${note ? ` (${note})` : ''}.`,\n    sourceUrl: 'https://modelrumor.com',\n  });\n}\n\n// De-dupe by slug — the page can list the same model more than once at\n// different scroll positions in its rendered timeline.\nconst seen = new Set();\nconst rumors = rows.filter((r) => (seen.has(r.slug) ? false : (seen.add(r.slug), true)));\n\nif (!rumors.length) return [];\nreturn [{ json: { rumors } }];"
+      },
+      "id": "extract",
+      "name": "Extract rumors",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://trackai.theaugustdispatch.com/api/ingest/rumors",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": { "timeout": 30000 },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
+      },
+      "id": "post",
+      "name": "POST /api/ingest/rumors",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, 0],
+      "credentials": {
+        "httpHeaderAuth": { "id": "RgekZWiaJvwenceq", "name": "trackai — Ingest token" }
+      }
+    }
+  ],
+  "connections": {
+    "Daily 05:30": {
+      "main": [[{ "node": "GET modelrumor.com", "type": "main", "index": 0 }]]
+    },
+    "GET modelrumor.com": {
+      "main": [[{ "node": "Extract rumors", "type": "main", "index": 0 }]]
+    },
+    "Extract rumors": {
+      "main": [[{ "node": "POST /api/ingest/rumors", "type": "main", "index": 0 }]]
+    }
+  }
+}

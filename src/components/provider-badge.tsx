@@ -9,16 +9,22 @@ const SIZES = {
 export function ProviderBadge({
   provider,
   size = "md",
+  muted = false,
 }: {
   provider: string;
   size?: keyof typeof SIZES;
+  /** Rumored, not confirmed by anyone — the badge desaturates rather than
+   *  carrying a brand color it hasn't earned yet. */
+  muted?: boolean;
 }) {
   const style = providerStyle(provider);
   const s = SIZES[size];
 
   return (
     <span
-      className={`inline-flex shrink-0 items-center justify-center rounded-xl ${s.box}`}
+      className={`inline-flex shrink-0 items-center justify-center rounded-xl ${s.box} ${
+        muted ? "grayscale opacity-60" : ""
+      }`}
       style={{ backgroundColor: style.color }}
       title={provider}
       aria-hidden="true"

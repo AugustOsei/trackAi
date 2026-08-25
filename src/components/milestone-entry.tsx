@@ -94,7 +94,11 @@ export function MilestoneEntry({
                 className="timeline-float block"
                 style={{ animationDelay: `${900 + index * 240}ms` }}
               >
-                <ProviderBadge provider={model.provider} size="md" />
+                <ProviderBadge
+                  provider={model.provider}
+                  size="md"
+                  muted={model.status === "rumored"}
+                />
               </span>
             </span>
           </span>
