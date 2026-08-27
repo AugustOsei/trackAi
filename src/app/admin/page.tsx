@@ -2,18 +2,21 @@ import {
   getPendingReports,
   getRecentApprovedReports,
   getModelOptionsForSubmit,
+  getAllModelsForAdmin,
 } from "@/lib/queries";
 import { approveReport, rejectReport, logout } from "@/lib/actions";
 import { ReviewQueue } from "@/components/review-queue";
 import { PublishedReport } from "@/components/published-report";
+import { AdminModelList } from "@/components/admin-model-list";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminQueuePage() {
-  const [pending, approved, modelOptions] = await Promise.all([
+  const [pending, approved, modelOptions, allModels] = await Promise.all([
     getPendingReports(),
     getRecentApprovedReports(),
     getModelOptionsForSubmit(),
+    getAllModelsForAdmin(),
   ]);
 
   return (
@@ -54,6 +57,17 @@ export default async function AdminQueuePage() {
               <PublishedReport key={report.id} report={report} modelOptions={modelOptions} />
             ))}
           </div>
+        </section>
+      )}
+
+      {allModels.length > 0 && (
+        <section className="mt-16">
+          <h2 className="font-display text-2xl font-black tracking-tight text-ink">Models</h2>
+          <p className="font-data mt-1 text-sm text-ink-muted">
+            Every tracked model, newest first. Delete junk rumor rows here —
+            a model&rsquo;s report links go with it.
+          </p>
+          <AdminModelList models={allModels} />
         </section>
       )}
     </div>

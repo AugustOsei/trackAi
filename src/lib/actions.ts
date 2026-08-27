@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { reports, reportModels, subscribers, MAX_MODELS_PER_REPORT } from "@/db/schema";
+import { models, reports, reportModels, subscribers, MAX_MODELS_PER_REPORT } from "@/db/schema";
 import { verifyPassword } from "@/lib/password";
 import { checkAndRecordSubmission, clientIpFrom } from "@/lib/rate-limit";
 import {
@@ -293,6 +293,24 @@ export async function deleteReport(formData: FormData): Promise<void> {
   await db.delete(reports).where(eq(reports.id, reportId));
 
   revalidateReportSurfaces();
+}
+
+/**
+ * Delete a model. Its report links go with it (report_models cascades); a
+ * report left with no models still exists but stops showing on any grid.
+ * Used to clear out junk rumor-discovery rows. /admin only.
+ */
+export async function deleteModel(formData: FormData): Promise<void> {
+  const modelId = Number(formData.get("modelId"));
+  if (!Number.isInteger(modelId) || modelId <= 0) return;
+
+  await db.delete(models).where(eq(models.id, modelId));
+
+  revalidatePath("/admin");
+  revalidatePath("/reports");
+  revalidatePath("/");
+  revalidatePath("/models/[slug]", "page");
+  revalidatePath("/submit");
 }
 
 /**

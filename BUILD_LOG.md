@@ -1212,3 +1212,19 @@ junk.
   unchanged. Same component still drives both the submit form and the admin
   model controls. Verified: filter, keyboard-add, click-add, chip-remove,
   and a real two-model submit landing 2 join rows.
+
+## 2026-08-27 — Delete models from /admin
+
+The model sync backfilled prod but left the junk rumor rows n8n had
+invented ("Something — OpenAI", "Fable 5.1", "Composer 3"). The sync only
+upserts, and there was no delete-model control anywhere.
+
+- New **Models** section on `/admin`: every model, newest first (where a
+  freshly-invented rumor lands), a text filter, and a two-click Delete per
+  row. `deleteModel` server action; `report_models` cascades, and the
+  confirm text warns when a real report would lose the model.
+- `getAllModelsForAdmin` — models left-joined to `report_models` for the
+  per-row report count.
+- Verified on dev: filtered, deleted a 0-report rumor row (50 → 49), and
+  confirmed the "3 report(s) lose this model" warning shows for Opus 5
+  without deleting it.

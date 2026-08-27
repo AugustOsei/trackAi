@@ -186,6 +186,27 @@ export async function getModelOptionsForSubmit() {
     .orderBy(models.name);
 }
 
+/**
+ * Every model with a report count, newest first — the /admin list for
+ * pruning bad rumor-discovery rows and other junk. Newest first because
+ * that's where a freshly-invented rumor lands.
+ */
+export async function getAllModelsForAdmin() {
+  return db
+    .select({
+      id: models.id,
+      name: models.name,
+      provider: models.provider,
+      status: models.status,
+      createdAt: models.createdAt,
+      reportCount: sql<number>`count(${reportModels.reportId})::int`,
+    })
+    .from(models)
+    .leftJoin(reportModels, eq(reportModels.modelId, models.id))
+    .groupBy(models.id)
+    .orderBy(desc(models.createdAt));
+}
+
 /** Models that haven't appeared in a release-alert digest yet. */
 export async function getUnalertedModels() {
   return db.query.models.findMany({
