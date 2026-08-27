@@ -16,7 +16,7 @@ import "server-only";
 const SOURCE_NOTES: Record<string, string> = {
   hn: "A Hacker News comment. Usually technical and often first-hand, but frequently opinion about a company rather than a report about a model.",
   forum:
-    "A post on a developer tool's support forum. The strongest source: people post there while actually using the model on their own work, and usually say what they were doing. Also full of support requests that describe a bug in the tool rather than the model's behaviour — those are not reports.",
+    "A post on a developer tool's support forum (Cursor's forum, Hugging Face's forum). At its best, people post there mid-task and say what they were doing. But most traffic is support and grievance: outages and downtime, rate-limit and quota and billing problems, API errors and integration bugs, 'is anyone else seeing this', feature requests, and general dissatisfaction with pricing or a product decision. A model name in one of those is still not a report. Accept a post only when the person describes a concrete task they ran and what the model actually produced.",
   reddit:
     "A Reddit comment or post. Wide range: genuine detailed benchmarks of someone's own workload alongside speculation, jokes, and hype. Judge on specifics, not tone.",
   youtube:
@@ -32,7 +32,9 @@ You will be given one piece of text that mentions a named model. Decide whether 
 
 About this source: ${note}
 
-Mark usable=false when the text is: speculation, pricing or business chat, a complaint about the company rather than the model, a benchmark score quoted secondhand, a support request about a tool rather than the model, a reaction to a video or article rather than to using the model, or only a passing mention.
+Mark usable=false when the text is any of: speculation; pricing or business chat; a complaint about the company, its pricing, or a product decision; a benchmark score quoted secondhand; a bug report, API error, integration problem, or support request; an outage, downtime, latency, or rate-limit / quota / billing report; a feature request or "is anyone else seeing this"; a reaction to a video or article rather than to using the model; or only a passing mention. A model name does not rescue any of these — a rate-limit rant that says "GPT-5.6" is still a rate-limit rant, not a report.
+
+To be usable the text must clear BOTH bars: it names a concrete task the person actually ran (not "I use it for coding" — an actual thing they did), AND it says what the model produced or how it behaved on that task. If either is missing, usable=false.
 
 The bar is the same regardless of source. A vague Cursor forum post is not more usable than a specific YouTube comment — specificity about a real task is what counts, not where it was posted.
 

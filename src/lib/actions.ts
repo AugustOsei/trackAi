@@ -207,6 +207,94 @@ export async function setReportModels(formData: FormData): Promise<void> {
   }
 }
 
+/** Refresh every surface a published report can appear on. */
+function revalidateReportSurfaces() {
+  revalidatePath("/admin");
+  revalidatePath("/reports");
+  revalidatePath("/");
+  revalidatePath("/models/[slug]", "page");
+}
+
+const TASK_CATEGORIES = ["coding", "agentic", "vision", "writing", "other"] as const;
+
+const editReportSchema = z.object({
+  reportId: z.coerce.number().int().positive(),
+  taskCategory: z.enum(TASK_CATEGORIES),
+  takeaway: z.string().trim().min(10, "Give a bit more detail.").max(400),
+  sourceUrl: z.string().trim().url("Enter a valid URL."),
+});
+
+export type EditReportState = { error?: string; ok?: boolean };
+
+/**
+ * Fix a published report in place — reword the takeaway, correct the task
+ * category, or repair a bad source link. /admin only, same trust model as
+ * approve/reject (the proxy gates every POST under /admin).
+ */
+export async function editReport(
+  _prev: EditReportState,
+  formData: FormData,
+): Promise<EditReportState> {
+  const parsed = editReportSchema.safeParse({
+    reportId: formData.get("reportId"),
+    taskCategory: formData.get("taskCategory"),
+    takeaway: formData.get("takeaway"),
+    sourceUrl: formData.get("sourceUrl"),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Check the fields and try again." };
+  }
+
+  const { reportId, ...fields } = parsed.data;
+  try {
+    const [row] = await db
+      .update(reports)
+      .set(fields)
+      .where(eq(reports.id, reportId))
+      .returning({ id: reports.id });
+    if (!row) return { error: "That report no longer exists." };
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "";
+    if (message.includes("reports_source_url_idx")) {
+      return { error: "Another report already uses that source URL." };
+    }
+    return { error: "Something went wrong saving the edit." };
+  }
+
+  revalidateReportSurfaces();
+  return { ok: true };
+}
+
+/**
+ * Pull a published report back into the review queue — for one that got
+ * approved but needs a second look rather than deleting outright.
+ */
+export async function unpublishReport(formData: FormData): Promise<void> {
+  const reportId = Number(formData.get("reportId"));
+  if (!Number.isInteger(reportId) || reportId <= 0) return;
+
+  await db
+    .update(reports)
+    .set({ status: "pending", approvedAt: null })
+    .where(and(eq(reports.id, reportId), eq(reports.status, "approved")));
+
+  revalidateReportSurfaces();
+}
+
+/**
+ * Delete a report for good. Its model links go with it (the join table
+ * cascades on delete). Used to clear out demo rows and reports that turned
+ * out to be complaints or off-topic comments rather than real accounts.
+ */
+export async function deleteReport(formData: FormData): Promise<void> {
+  const reportId = Number(formData.get("reportId"));
+  if (!Number.isInteger(reportId) || reportId <= 0) return;
+
+  await db.delete(reports).where(eq(reports.id, reportId));
+
+  revalidateReportSurfaces();
+}
+
 /**
  * Approve/reject from an emailed review link.
  *

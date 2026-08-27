@@ -76,7 +76,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Which forums to poll, and what the tracked models are called.\n// /latest.json and /t/<id>.json are used rather than /search.json because\n// every one of these forums disallows /search in robots.txt.\nconst models = $input.first().json.models ?? [];\nconst forums = [\"forum.cursor.com\", \"community.openai.com\", \"discuss.huggingface.co\"];\n// Two pages each: one page of /latest.json is about 30 topics, which on a\n// busy forum is a few hours of activity rather than the full day.\nconst out = [];\nfor (const host of forums) {\n  for (const page of [0, 1]) out.push({ json: { host, page, models } });\n}\nreturn out;"
+        "jsCode": "// Which forums to poll, and what the tracked models are called.\n// /latest.json and /t/<id>.json are used rather than /search.json because\n// every one of these forums disallows /search in robots.txt.\nconst models = $input.first().json.models ?? [];\n// community.openai.com is dropped on purpose: its traffic is overwhelmingly\n// billing, outage, and API-error support threads, not hands-on model reports,\n// and it swamped the review queue with noise.\nconst forums = [\"forum.cursor.com\", \"discuss.huggingface.co\"];\n// Two pages each: one page of /latest.json is about 30 topics, which on a\n// busy forum is a few hours of activity rather than the full day.\nconst out = [];\nfor (const host of forums) {\n  for (const page of [0, 1]) out.push({ json: { host, page, models } });\n}\nreturn out;"
       },
       "id": "forums",
       "name": "Forums to poll",
