@@ -1185,3 +1185,30 @@ junk.
   ran `drizzle-kit migrate` by hand against the direct endpoint after the
   deploy had already 500'd. Do not tell him a prod migration is "done"
   without seeing the output.
+
+## 2026-08-27 — Searchable model picker, and a way to push models to prod
+
+- **The submit form's model list was stale on prod** because the grid
+  backfill only ever hit the *dev* database — `db:seed` is a dev script.
+  Prod's `models` table is its own accretion: the old 34-model seed plus
+  whatever n8n's rumor-discovery has added (including junk like
+  "Something — OpenAI" and "Composer 3"). None of the ~14 provider-sourced
+  additions were there.
+  - Fix: `scripts/sync-models.ts` (`npm run db:sync-models`) POSTs the
+    released seed models to `/api/ingest/models`, which upserts on `slug`
+    and never changes an existing row's `status` — so reports, rumored
+    rows, and claim enrichment are untouched. Extracted `SEED` into
+    `src/db/seed-data.ts` (pure, no side effects) so both the seed and the
+    sync script can import it.
+  - Tested against the local dev server: `200 { ok: true, upserted: 46 }`.
+    Prod still needs the run — same blocked-sandbox situation as the
+    migration, so Augustine runs it:
+    `node --env-file=.env.local node_modules/.bin/tsx scripts/sync-models.ts`
+
+- **50 options in a `<select>` was the wrong control** for a list that only
+  grows. `ModelMultiPicker` is now a search combobox: type to filter (name
+  or provider), Enter or click to add, picked models sit above as removable
+  chips, hidden `<input name="modelId">` per pick so the form contract is
+  unchanged. Same component still drives both the submit form and the admin
+  model controls. Verified: filter, keyboard-add, click-add, chip-remove,
+  and a real two-model submit landing 2 join rows.

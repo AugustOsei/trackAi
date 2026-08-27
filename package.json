@@ -12,6 +12,7 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx src/db/seed.ts",
+    "db:sync-models": "tsx scripts/sync-models.ts",
     "hash-password": "node scripts/hash-password.mjs",
     "set-admin-password": "node scripts/set-admin-password.mjs"
   },
