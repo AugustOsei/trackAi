@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { useActionState } from "react";
 import { submitReport, type SubmitReportState } from "@/lib/actions";
+import { ModelMultiPicker, type ModelOption } from "@/components/model-multi-picker";
 
 const TASK_CATEGORIES = [
   { value: "coding", label: "Coding" },
@@ -21,21 +23,64 @@ export function SubmitForm({
   models,
   defaultModelId,
 }: {
-  models: { id: number; name: string; provider: string }[];
+  models: ModelOption[];
   defaultModelId?: number;
+}) {
+  // The model(s) and task carry over to the next report — submitting several
+  // links for the same model, or the same bake-off, is the common case.
+  // `formKey` remounts the inner form to clear the takeaway and source fields
+  // and reset the action state after an "Add another".
+  const [formKey, setFormKey] = useState(0);
+  const [modelIds, setModelIds] = useState<string[]>(
+    defaultModelId ? [String(defaultModelId)] : [],
+  );
+  const [taskCategory, setTaskCategory] = useState("");
+
+  return (
+    <ReportForm
+      key={formKey}
+      models={models}
+      modelIds={modelIds}
+      onModelIds={setModelIds}
+      taskCategory={taskCategory}
+      onTaskCategory={setTaskCategory}
+      onAddAnother={() => setFormKey((k) => k + 1)}
+    />
+  );
+}
+
+function ReportForm({
+  models,
+  modelIds,
+  onModelIds,
+  taskCategory,
+  onTaskCategory,
+  onAddAnother,
+}: {
+  models: ModelOption[];
+  modelIds: string[];
+  onModelIds: (ids: string[]) => void;
+  taskCategory: string;
+  onTaskCategory: (value: string) => void;
+  onAddAnother: () => void;
 }) {
   const [state, formAction, pending] = useActionState(submitReport, initialState);
 
   if (state.success) {
     return (
       <div className="mt-8 rounded-2xl bg-surface p-6">
-        <p className="font-display text-xl font-bold text-ink">
-          Report received.
-        </p>
+        <p className="font-display text-xl font-bold text-ink">Report received.</p>
         <p className="mt-2 text-ink-muted">
           It’s in the review queue now — it’ll appear on the site once
           approved.
         </p>
+        <button
+          type="button"
+          onClick={onAddAnother}
+          className="font-display mt-5 rounded-full bg-gold px-5 py-2.5 text-sm font-black tracking-tight text-gold-fg transition-opacity hover:opacity-90"
+        >
+          Add another report
+        </button>
       </div>
     );
   }
@@ -50,25 +95,17 @@ export function SubmitForm({
       </div>
 
       <div>
-        <label htmlFor="modelId" className={labelClass}>
-          Model
-        </label>
-        <select
-          id="modelId"
-          name="modelId"
-          required
-          defaultValue={defaultModelId ?? ""}
-          className={`font-data ${fieldClass}`}
-        >
-          <option value="" disabled>
-            Select a model
-          </option>
-          {models.map((m) => (
-            <option key={m.id} value={m.id} className="bg-surface">
-              {m.name} — {m.provider}
-            </option>
-          ))}
-        </select>
+        <span className={labelClass}>Model(s)</span>
+        <p className="mt-1 text-xs text-ink-faint">
+          Add more than one if the same prompt was run across several models.
+        </p>
+        <div className="mt-2">
+          <ModelMultiPicker
+            models={models}
+            initialIds={modelIds.map(Number).filter((n) => n > 0)}
+            onChange={onModelIds}
+          />
+        </div>
       </div>
 
       <div>
@@ -79,7 +116,8 @@ export function SubmitForm({
           id="taskCategory"
           name="taskCategory"
           required
-          defaultValue=""
+          value={taskCategory}
+          onChange={(e) => onTaskCategory(e.target.value)}
           className={`font-data ${fieldClass}`}
         >
           <option value="" disabled>

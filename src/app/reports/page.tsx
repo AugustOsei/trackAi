@@ -81,7 +81,7 @@ export default async function ReportsFeedPage({ searchParams }: PageProps<"/repo
             <ReportCard
               key={report.id}
               report={report}
-              model={report.model}
+              models={report.models}
             />
           ))}
         </div>

@@ -275,7 +275,7 @@ export function MilestoneTimeline({ models }: { models: TimelineModel[] }) {
   let groupIndex = 0;
 
   return (
-    <section className="mt-8 overflow-hidden rounded-3xl border border-hairline">
+    <section className="mt-6 overflow-hidden rounded-3xl border border-hairline">
       <div className="flex items-center justify-between gap-3 border-b border-hairline px-4 py-2.5 sm:px-6">
         <span className="font-data text-[11px] tracking-wider whitespace-nowrap text-ink-faint">
           {rangeLabel}

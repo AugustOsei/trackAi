@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { inArray } from "drizzle-orm";
 import { db } from "@/db";
-import { models, reports } from "@/db/schema";
+import { models, reports, reportModels, MAX_MODELS_PER_REPORT } from "@/db/schema";
 import { isAuthorizedIngest, unauthorized } from "@/lib/ingest-auth";
 
 export const dynamic = "force-dynamic";
@@ -14,16 +14,27 @@ export const dynamic = "force-dynamic";
  * has no way to publish directly, by design.
  *
  * Reports arrive keyed by model *slug* rather than id, since n8n has no
- * reason to know database ids. Unknown slugs are skipped and reported back
- * rather than failing the whole batch, so one bad row doesn't lose a run.
+ * reason to know database ids. A report can name one model (`modelSlug`) or
+ * several (`modelSlugs`) — a prompt run as a bake-off. Unknown slugs are
+ * skipped and reported back rather than failing the whole batch, so one bad
+ * row doesn't lose a run; a report left with no known model is skipped whole.
  */
-const reportSchema = z.object({
-  modelSlug: z.string().trim().min(1).max(200),
-  taskCategory: z.enum(["coding", "agentic", "vision", "writing", "other"]),
-  takeaway: z.string().trim().min(10).max(400),
-  sourceUrl: z.string().trim().url(),
-  sourceType: z.enum(["hn", "reddit", "youtube", "forum", "manual"]).default("hn"),
-});
+const reportSchema = z
+  .object({
+    modelSlug: z.string().trim().min(1).max(200).optional(),
+    modelSlugs: z.array(z.string().trim().min(1).max(200)).min(1).max(MAX_MODELS_PER_REPORT).optional(),
+    taskCategory: z.enum(["coding", "agentic", "vision", "writing", "other"]),
+    takeaway: z.string().trim().min(10).max(400),
+    sourceUrl: z.string().trim().url(),
+    sourceType: z.enum(["hn", "reddit", "youtube", "forum", "manual"]).default("hn"),
+  })
+  .refine((r) => r.modelSlug || r.modelSlugs, {
+    message: "Provide modelSlug or modelSlugs",
+  })
+  .transform((r) => ({
+    ...r,
+    slugs: [...new Set(r.modelSlugs ?? (r.modelSlug ? [r.modelSlug] : []))],
+  }));
 
 const payloadSchema = z.object({
   reports: z.array(reportSchema).min(1).max(100),
@@ -48,49 +59,70 @@ export async function POST(request: Request) {
   }
 
   try {
-    const slugs = [...new Set(parsed.data.reports.map((r) => r.modelSlug))];
+    const allSlugs = [...new Set(parsed.data.reports.flatMap((r) => r.slugs))];
     const known = await db
       .select({ id: models.id, slug: models.slug })
       .from(models)
-      .where(inArray(models.slug, slugs));
+      .where(inArray(models.slug, allSlugs));
 
     const idBySlug = new Map(known.map((m) => [m.slug, m.id]));
 
-    const unknownSlugs: string[] = [];
-    const rows = [];
+    const unknownSlugs = new Set<string>();
+    const toInsert: {
+      row: {
+        taskCategory: (typeof parsed.data.reports)[number]["taskCategory"];
+        takeaway: string;
+        sourceUrl: string;
+        sourceType: (typeof parsed.data.reports)[number]["sourceType"];
+        status: "pending";
+      };
+      modelIds: number[];
+    }[] = [];
+
     for (const r of parsed.data.reports) {
-      const modelId = idBySlug.get(r.modelSlug);
-      if (!modelId) {
-        unknownSlugs.push(r.modelSlug);
-        continue;
+      const modelIds: number[] = [];
+      for (const slug of r.slugs) {
+        const id = idBySlug.get(slug);
+        if (id) modelIds.push(id);
+        else unknownSlugs.add(slug);
       }
-      rows.push({
-        modelId,
-        taskCategory: r.taskCategory,
-        takeaway: r.takeaway,
-        sourceUrl: r.sourceUrl,
-        sourceType: r.sourceType,
-        status: "pending" as const,
+      if (modelIds.length === 0) continue; // no known model — skip the report whole
+
+      toInsert.push({
+        row: {
+          taskCategory: r.taskCategory,
+          takeaway: r.takeaway,
+          sourceUrl: r.sourceUrl,
+          sourceType: r.sourceType,
+          status: "pending",
+        },
+        modelIds,
       });
     }
 
     let inserted = 0;
-    if (rows.length) {
-      // The unique index on source_url makes re-running a scrape a no-op
-      // for anything already seen, so the workflow needs no cursor state.
-      const result = await db
+    for (const { row, modelIds } of toInsert) {
+      // The unique index on source_url makes re-running a scrape a no-op for
+      // anything already seen, so the workflow needs no cursor state.
+      const [created] = await db
         .insert(reports)
-        .values(rows)
+        .values(row)
         .onConflictDoNothing({ target: reports.sourceUrl })
         .returning({ id: reports.id });
-      inserted = result.length;
+
+      if (!created) continue; // duplicate source URL
+
+      await db
+        .insert(reportModels)
+        .values(modelIds.map((modelId) => ({ reportId: created.id, modelId })));
+      inserted += 1;
     }
 
     return Response.json({
       ok: true,
       inserted,
-      duplicatesSkipped: rows.length - inserted,
-      unknownSlugs,
+      duplicatesSkipped: toInsert.length - inserted,
+      unknownSlugs: [...unknownSlugs],
     });
   } catch (err) {
     console.error("[ingest/reports] insert failed", err);

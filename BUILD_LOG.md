@@ -1039,3 +1039,108 @@ not a rebuild.
   to draw from. Caught while reconstructing what had changed during a
   context-compaction gap in the session; logged as one entry covering all
   three rather than backfilling each commit separately.
+
+## 2026-08-27 — Seed backfill from primary sources, and a scope line
+
+Augustine looked at the homepage grid and noticed it didn't feel complete —
+no Fable 5, gaps between the models it did have. It was right: the seed had
+34 released models, and a sweep of the labs' own newsrooms turned up ~13
+missing and a few wrong dates.
+
+- **First instinct was wrong.** I started from third-party trackers
+  (llmgateway, an "Axis Intelligence" tracker, a few others). They
+  contradicted each other *and* the seed — one put DeepSeek V4 Pro in April,
+  another as an August "0813" GA; GLM-5 was Feb 11 or Feb 15 depending on
+  the page; half of one tracker's "2026" April models were dated 2025.
+  Augustine pushed back: use the providers' own pages, not reporters. That's
+  also what the CLAIM-layer contract in `about/page.tsx` and
+  `api/ingest/models/route.ts` already says — provider's own account, with a
+  link to the announcement. Redid the whole pass against Anthropic, OpenAI,
+  Google DeepMind, xAI, DeepSeek, Alibaba, Z.AI, Moonshot and Xiaomi
+  newsrooms.
+
+- **The existing seed held up better than expected.** Gemini 3.1 Pro
+  (Feb 19), Opus 4.8 (May 28), Sonnet 5 (Jun 30), Opus 5 (Jul 24), GPT-5.6
+  GA (Jul 9), Kimi K2.6/K3, MiniMax M3, GLM-5.2/5.3 — all confirmed exact or
+  within a day. Real corrections were small: Grok 4.5 Jul 8 → Jul 16,
+  Grok 4.6 Aug 6 → Aug 12, GPT-5.5 Apr 23 → Apr 24.
+
+- **Scope question surfaced and got an answer.** There's no "models we
+  track" list anywhere — in production a row is born when the rumor workflow
+  spots a *named* model in a news feed, then gets filled from the
+  announcement. The seed's de-facto scope had leaked into video (Seedance)
+  and image (Muse). Augustine's call: language / reasoning models only.
+  Dropped Seedance 2.0, kept Muse Spark (it's Meta's Llama-successor LLM,
+  not the media models — a couple of blogs muddle Spark with Muse
+  Image/Video), and wrote the scope line into the seed's header comment so
+  the next person doesn't re-litigate it.
+
+- **Net:** 46 released models, up from 34. 14 added, 1 removed, 3 dates
+  fixed, 1 blurb fixed (Muse Spark was labelled a "creative generation
+  model"). New entries carry a `providerBlurb` and price where the lab
+  states it, but **no `announcementUrl`** — same reason as the original
+  seed: the claim workflow only visits models that have none, so a
+  placeholder link would make it skip them forever.
+
+- **Not primary-sourced, left as-is:** GLM-5, GLM-5.1, GLM-5.2 Turbo,
+  Qwen3.5 397B A17B, MiniMax M2.5/M2.7, MiMo V2 Pro, Fugu Ultra,
+  GPT-5.3 Codex, GPT-5.4 Mini/Nano. Couldn't find a lab page pinning the
+  date; not confident enough to invent one.
+
+- **Only the dev DB so far.** `npm run db:seed` needs the env loaded
+  explicitly (`node --env-file=.env.local ...` — tsx doesn't read
+  `.env.local` on its own). Production still needs the same list pushed
+  through `/api/ingest/models` or a reseed there.
+
+## 2026-08-27 — Reports get multi-model, plus two submit-flow fixes
+
+Augustine flagged three things after using the submit → review flow: some
+X links he'd filed had landed on the wrong model (the right one wasn't on
+the grid yet when they came in), users sometimes run one prompt across
+several models, and after submitting you had to navigate back to `/submit`
+to file the next one.
+
+- **"Add another report".** The submit success screen now has an "Add
+  another report" button that brings the form back with the model(s) and
+  task category kept — filing several links for the same model is the
+  common case — and the takeaway and source cleared. Pure client change:
+  the form is keyed, and incrementing the key remounts it, which resets
+  both `useActionState` and the uncontrolled fields.
+
+- **Move a report to the right model.** New `/admin` control. It's on
+  every review-queue card *and* on a new "Published reports" section (last
+  40 approved, newest first) — the mislabeled ones are already live, so the
+  fix has to reach approved reports, not just pending. Same trust model as
+  approve/reject: the proxy gates every POST under `/admin`, the action
+  itself doesn't re-check.
+
+- **One report, up to 5 models.** This was the real change — a schema
+  migration. `reports.model_id` (one FK) became a `report_models` join
+  table. Migration `0007` creates the table, copies every existing
+  `(id, model_id)` across, then drops the column — the `INSERT INTO …
+  SELECT` line is hand-added between drizzle-kit's generated statements,
+  since drizzle only writes the structural DDL.
+  - Cap is 5 (Augustine's call — he wanted room for a proper bake-off).
+  - Submit form: the single model dropdown became a "one dropdown + add
+    another model" picker (`ModelMultiPicker`), shared with the admin
+    move-control so there's one component for "pick N models".
+  - Drizzle's relational `with` can't filter a nested relation by a column
+    two hops away (report status, through the join table), so
+    `getTimelineModels` / `getModelBySlug` fetch the links and filter
+    approved-only in JS. Report volume is tiny; not worth a raw query.
+  - On a model page a multi-model report shows an "also tested on X, Y"
+    line linking its other models. In the feed it shows all its model
+    names joined.
+  - `/api/ingest/reports` now takes `modelSlugs: string[]` and still
+    accepts the old `modelSlug: string`, so the n8n HN/forum workflow
+    keeps working untouched.
+  - `MAX_MODELS_PER_REPORT` lives in `schema.ts`, not `actions.ts` — a
+    `"use server"` file can only export async functions, and a plain
+    `export const` there breaks the whole module (cost me a confusing
+    round of stale Turbopack error overlays before I spotted it).
+
+- **Verified end to end on the dev DB:** submitted a 2-model report (DB
+  got 2 join rows), added a 3rd from the admin picker (replace-the-set
+  transaction, DB got 3), both model pages showed the cross-links, the
+  feed showed the joined names, reject/approve still work. Migration `0007`
+  is applied to dev only — production still needs `db:migrate`.

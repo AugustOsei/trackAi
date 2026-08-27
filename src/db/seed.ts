@@ -1,11 +1,17 @@
 /**
  * Development seed.
  *
- * Release names and dates for shipped models are real, taken from a public
- * release tracker (llmgateway.io) covering Feb–Aug 2026. They are aggregated
- * third-party data, not verified against each lab's own announcement — good
- * enough to build against, and replaced by real provider announcements once
- * the claim workflow runs.
+ * Release names and dates for shipped models are real. They were reconciled
+ * against each provider's own announcement page in August 2026 — Anthropic,
+ * OpenAI, Google DeepMind, xAI, DeepSeek, Alibaba, Z.AI, Moonshot and Xiaomi
+ * newsrooms — rather than a third-party aggregator. A handful of older point
+ * releases (some GLM and Qwen minor versions, a few OpenAI size tiers) could
+ * not be pinned to a primary source and are kept at their best-known date;
+ * the claim workflow replaces all of this once it runs.
+ *
+ * Scope is language / reasoning models only. Image and video generators
+ * (Seedance, Muse Image, Muse Video, Grok Imagine, Qwen Image, Gemini Omni)
+ * are deliberately out, even when the same lab also ships an LLM.
  *
  * The CLAIM layer is strictly what each provider published about its own
  * model. Only Claude Opus 5 carries real, sourced figures here (taken from
@@ -23,7 +29,7 @@
  * claims about any lab's actual plans.
  */
 import { db } from "./index";
-import { models, reports } from "./schema";
+import { models, reports, reportModels } from "./schema";
 import type { NewModel } from "./schema";
 
 /** Provider-published price; the one figure every lab states the same way. */
@@ -140,12 +146,14 @@ const SEED: NewModel[] = [
     providerBlurb: "Point update to GLM-5 with a longer context window.",
   },
   {
-    name: "Seedance 2.0",
-    slug: "seedance-2-0",
-    provider: "ByteDance",
+    name: "Claude Opus 4.7",
+    slug: "claude-opus-4-7",
+    provider: "Anthropic",
     status: "released",
-    actualDate: "2026-04-14",
-    providerBlurb: "Video generation model from ByteDance's Seed group.",
+    actualDate: "2026-04-16",
+    providerBlurb:
+      "Improvement on Opus 4.6 in advanced software engineering, with the largest gains on the hardest tasks.",
+    ...price("5.000"),
   },
   {
     name: "Kimi K2.6",
@@ -155,22 +163,14 @@ const SEED: NewModel[] = [
     actualDate: "2026-04-20",
     providerBlurb: "Agentic-focused release in the Kimi K2 line.",
   },
-  // Flagship and its Pro tier, same day.
   {
-    name: "GPT-5.5",
-    slug: "gpt-5-5",
-    provider: "OpenAI",
+    name: "MiMo-V2.5-Pro",
+    slug: "mimo-v2-5-pro",
+    provider: "Xiaomi",
     status: "released",
-    actualDate: "2026-04-23",
-    providerBlurb: "Flagship update with a substantially larger context window.",
-  },
-  {
-    name: "GPT-5.5 Pro",
-    slug: "gpt-5-5-pro",
-    provider: "OpenAI",
-    status: "released",
-    actualDate: "2026-04-23",
-    providerBlurb: "Extended-reasoning tier of GPT-5.5.",
+    actualDate: "2026-04-22",
+    providerBlurb:
+      "Open-weights 1T-parameter mixture-of-experts model, pitched at frontier-tier scores for a fraction of the cost.",
   },
   {
     name: "DeepSeek V4 Pro",
@@ -181,8 +181,52 @@ const SEED: NewModel[] = [
     providerBlurb: "Open-weights reasoning model at an aggressive price point.",
     ...price("0.900"),
   },
+  {
+    name: "DeepSeek V4 Flash",
+    slug: "deepseek-v4-flash",
+    provider: "DeepSeek",
+    status: "released",
+    actualDate: "2026-04-24",
+    providerBlurb:
+      "Smaller, faster sibling to V4 Pro — 284B total / 13B active, 1M context, thinking and non-thinking modes.",
+  },
+  // Flagship and its Pro tier, same day.
+  {
+    name: "GPT-5.5",
+    slug: "gpt-5-5",
+    provider: "OpenAI",
+    status: "released",
+    actualDate: "2026-04-24",
+    providerBlurb: "Flagship update with a substantially larger context window.",
+  },
+  {
+    name: "GPT-5.5 Pro",
+    slug: "gpt-5-5-pro",
+    provider: "OpenAI",
+    status: "released",
+    actualDate: "2026-04-24",
+    providerBlurb: "Extended-reasoning tier of GPT-5.5.",
+  },
 
   // ── May–June 2026 ────────────────────────────────────────────────────────
+  {
+    name: "Qwen3.7-Max",
+    slug: "qwen3-7-max",
+    provider: "Alibaba",
+    status: "released",
+    actualDate: "2026-05-17",
+    providerBlurb:
+      "Agent-focused flagship of the Qwen3.7 line, served through Alibaba Cloud Model Studio.",
+  },
+  {
+    name: "Gemini 3.5 Flash",
+    slug: "gemini-3-5-flash",
+    provider: "Google DeepMind",
+    status: "released",
+    actualDate: "2026-05-19",
+    providerBlurb:
+      "First of the Gemini 3.5 family — flagship-level intelligence at Flash speed, built for agents.",
+  },
   {
     name: "Claude Opus 4.8",
     slug: "claude-opus-4-8",
@@ -198,6 +242,25 @@ const SEED: NewModel[] = [
     status: "released",
     actualDate: "2026-06-01",
     providerBlurb: "New generation of the MiniMax line.",
+  },
+  {
+    name: "Claude Fable 5",
+    slug: "claude-fable-5",
+    provider: "Anthropic",
+    status: "released",
+    actualDate: "2026-06-09",
+    providerBlurb:
+      "A Mythos-class model made safe for general use; state-of-the-art on nearly all tested capability benchmarks. Briefly suspended over export controls, redeployed 1 July.",
+    ...price("10.000"),
+  },
+  {
+    name: "Kimi K2.7-Code",
+    slug: "kimi-k2-7-code",
+    provider: "Moonshot AI",
+    status: "released",
+    actualDate: "2026-06-12",
+    providerBlurb:
+      "Open-weights coding model — around 30% fewer reasoning tokens than K2.6 at higher scores on Moonshot's own coding bench.",
   },
   {
     name: "GLM-5.2",
@@ -226,14 +289,6 @@ const SEED: NewModel[] = [
   },
 
   // ── July 2026 ────────────────────────────────────────────────────────────
-  {
-    name: "Grok 4.5",
-    slug: "grok-4-5",
-    provider: "xAI",
-    status: "released",
-    actualDate: "2026-07-08",
-    providerBlurb: "Reasoning update to the Grok 4 line.",
-  },
   // Three models, one day — the densest same-day case in the seed.
   {
     name: "GPT-5.6 Luna",
@@ -259,6 +314,16 @@ const SEED: NewModel[] = [
     actualDate: "2026-07-09",
     providerBlurb: "Reasoning tier of the GPT-5.6 family.",
   },
+  // Two labs, same day.
+  {
+    name: "Grok 4.5",
+    slug: "grok-4-5",
+    provider: "xAI",
+    status: "released",
+    actualDate: "2026-07-16",
+    providerBlurb: "xAI's smartest model for coding, agentic tasks and knowledge work; trained alongside Cursor.",
+    ...price("2.000"),
+  },
   {
     name: "Kimi K3",
     slug: "kimi-k3",
@@ -267,6 +332,36 @@ const SEED: NewModel[] = [
     actualDate: "2026-07-16",
     providerBlurb: "New generation of Moonshot's open-weights line.",
     ...price("0.500"),
+  },
+  // Google ships three Flash-class models together.
+  {
+    name: "Gemini 3.6 Flash",
+    slug: "gemini-3-6-flash",
+    provider: "Google DeepMind",
+    status: "released",
+    actualDate: "2026-07-21",
+    providerBlurb:
+      "Workhorse Flash model with better coding, knowledge work and multimodal performance.",
+    ...price("1.500"),
+  },
+  {
+    name: "Gemini 3.5 Flash-Lite",
+    slug: "gemini-3-5-flash-lite",
+    provider: "Google DeepMind",
+    status: "released",
+    actualDate: "2026-07-21",
+    providerBlurb:
+      "Fastest, most cost-effective 3.5-class model, serving around 350 output tokens per second.",
+    ...price("0.300"),
+  },
+  {
+    name: "Gemini 3.5 Flash Cyber",
+    slug: "gemini-3-5-flash-cyber",
+    provider: "Google DeepMind",
+    status: "released",
+    actualDate: "2026-07-21",
+    providerBlurb:
+      "Cybersecurity-tuned model deployed through the CodeMender agent in a limited government and partner pilot.",
   },
   {
     name: "Claude Opus 5",
@@ -295,14 +390,15 @@ const SEED: NewModel[] = [
     actualDate: "2026-08-02",
     providerBlurb: "Largest tier of the Qwen3.8 series.",
   },
-  // Two US labs, same day.
   {
     name: "Grok 4.6",
     slug: "grok-4-6",
     provider: "xAI",
     status: "released",
-    actualDate: "2026-08-06",
-    providerBlurb: "Latest Grok 4 point release.",
+    actualDate: "2026-08-12",
+    providerBlurb:
+      "Builds on Grok 4.5 with a focus on long-running agents and more ambitious interactive and visual work.",
+    ...price("2.000"),
   },
   {
     name: "Muse Spark 1.2",
@@ -310,7 +406,8 @@ const SEED: NewModel[] = [
     provider: "Meta",
     status: "released",
     actualDate: "2026-08-06",
-    providerBlurb: "Meta's creative generation model.",
+    providerBlurb:
+      "Meta Superintelligence Labs' flagship LLM and Llama successor; powers the Meta AI assistant.",
   },
   {
     name: "Gemini 3.7 Flash",
@@ -336,6 +433,33 @@ const SEED: NewModel[] = [
     status: "released",
     actualDate: "2026-08-17",
     providerBlurb: "Throughput-optimised variant of GLM-5.2.",
+  },
+  {
+    name: "DeepSeek V4 Flash Vision Exp",
+    slug: "deepseek-v4-flash-vision-exp",
+    provider: "DeepSeek",
+    status: "released",
+    actualDate: "2026-08-21",
+    providerBlurb:
+      "Experimental multimodal build of V4 Flash, adding vision input through the API.",
+  },
+  {
+    name: "Qwen3.8-Flash-Next",
+    slug: "qwen3-8-flash-next",
+    provider: "Alibaba",
+    status: "released",
+    actualDate: "2026-08-26",
+    providerBlurb:
+      "Open-weights 125B mixture-of-experts model (6B active), an early preview of the Qwen4 architecture.",
+  },
+  {
+    name: "GLM-5.3-Flash",
+    slug: "glm-5-3-flash",
+    provider: "Z.AI",
+    status: "released",
+    actualDate: "2026-08-26",
+    providerBlurb:
+      "First natively multimodal GLM-5 release — 320B total / 18B active, MIT-licensed, tested publicly as “Ox Alpha”.",
   },
 
   // ── Unconfirmed: announced or rumored, not sourced claims ────────────────
@@ -373,9 +497,105 @@ const SEED: NewModel[] = [
   },
 ];
 
+/** Report specs, keyed by model slug(s) — resolved to ids after models insert. */
+type SeedReport = {
+  modelSlugs: string[];
+  taskCategory: "coding" | "agentic" | "vision" | "writing" | "other";
+  takeaway: string;
+  sourceUrl: string;
+  sourceType: "hn" | "reddit" | "youtube" | "forum" | "twitter" | "manual";
+  status: "approved" | "pending";
+};
+
+const SEED_REPORTS: SeedReport[] = [
+  {
+    modelSlugs: ["claude-opus-5"],
+    taskCategory: "coding",
+    takeaway:
+      "Handled a multi-file refactor across an unfamiliar Rust codebase without breaking the build, but needed a second pass to fix a borrow-checker edge case.",
+    sourceUrl: "https://news.ycombinator.com/item?id=41000001",
+    sourceType: "hn",
+    status: "approved",
+  },
+  {
+    modelSlugs: ["claude-opus-5"],
+    taskCategory: "agentic",
+    takeaway:
+      "Ran a 40-step browser automation task end to end, but got stuck retrying a flaky selector instead of asking for help.",
+    sourceUrl: "https://news.ycombinator.com/item?id=41000002",
+    sourceType: "hn",
+    status: "approved",
+  },
+  {
+    modelSlugs: ["deepseek-v4-pro"],
+    taskCategory: "coding",
+    takeaway:
+      "Matched a much pricier model on a LeetCode-style set, but degraded noticeably once the prompt exceeded ~60k tokens.",
+    sourceUrl: "https://news.ycombinator.com/item?id=41000003",
+    sourceType: "hn",
+    status: "approved",
+  },
+  {
+    modelSlugs: ["gemini-3-7-flash"],
+    taskCategory: "vision",
+    takeaway:
+      "Correctly read a handwritten whiteboard photo end to end, including a crossed-out line most tools misread as included text.",
+    sourceUrl: "https://news.ycombinator.com/item?id=41000004",
+    sourceType: "hn",
+    status: "approved",
+  },
+  {
+    modelSlugs: ["kimi-k3"],
+    taskCategory: "writing",
+    takeaway:
+      "Held a consistent house style across a 12-section document without re-prompting, which the previous version could not do.",
+    sourceUrl: "https://news.ycombinator.com/item?id=41000005",
+    sourceType: "hn",
+    status: "approved",
+  },
+  {
+    modelSlugs: ["glm-5-3"],
+    taskCategory: "agentic",
+    takeaway:
+      "Ran an overnight scraping agent on a single GPU without falling over, though it silently skipped two failed pages.",
+    sourceUrl: "https://news.ycombinator.com/item?id=41000006",
+    sourceType: "hn",
+    status: "approved",
+  },
+  // One prompt across three models — exercises the multi-model report path.
+  {
+    modelSlugs: ["claude-opus-5", "gpt-5-6-sol", "gemini-3-5-flash"],
+    taskCategory: "coding",
+    takeaway:
+      "Same 'port this service to async' prompt on all three: Opus 5 shipped it in one pass, GPT-5.6 Sol needed a nudge on error handling, Gemini 3.5 Flash was fastest but left two TODOs.",
+    sourceUrl: "https://news.ycombinator.com/item?id=41000009",
+    sourceType: "hn",
+    status: "approved",
+  },
+  {
+    modelSlugs: ["gpt-5-6-terra"],
+    taskCategory: "coding",
+    takeaway:
+      "Under review: claimed to fix a race condition in a submitted snippet, reporter says the fix looks plausible but is still testing it under load.",
+    sourceUrl: "https://news.ycombinator.com/item?id=41000007",
+    sourceType: "manual",
+    status: "pending",
+  },
+  {
+    modelSlugs: ["qwen3-8-max"],
+    taskCategory: "other",
+    takeaway:
+      "Submitted report awaiting review — task category and takeaway not yet verified against the source.",
+    sourceUrl: "https://news.ycombinator.com/item?id=41000008",
+    sourceType: "manual",
+    status: "pending",
+  },
+];
+
 async function seed() {
   console.log("Seeding trackai database...");
 
+  await db.delete(reportModels);
   await db.delete(reports);
   await db.delete(models);
 
@@ -387,88 +607,27 @@ async function seed() {
     return m.id;
   };
 
-  await db.insert(reports).values([
-    {
-      modelId: id("claude-opus-5"),
-      taskCategory: "coding",
-      takeaway:
-        "Handled a multi-file refactor across an unfamiliar Rust codebase without breaking the build, but needed a second pass to fix a borrow-checker edge case.",
-      sourceUrl: "https://news.ycombinator.com/item?id=41000001",
-      sourceType: "hn",
-      status: "approved",
-      approvedAt: new Date(),
-    },
-    {
-      modelId: id("claude-opus-5"),
-      taskCategory: "agentic",
-      takeaway:
-        "Ran a 40-step browser automation task end to end, but got stuck retrying a flaky selector instead of asking for help.",
-      sourceUrl: "https://news.ycombinator.com/item?id=41000002",
-      sourceType: "hn",
-      status: "approved",
-      approvedAt: new Date(),
-    },
-    {
-      modelId: id("deepseek-v4-pro"),
-      taskCategory: "coding",
-      takeaway:
-        "Matched a much pricier model on a LeetCode-style set, but degraded noticeably once the prompt exceeded ~60k tokens.",
-      sourceUrl: "https://news.ycombinator.com/item?id=41000003",
-      sourceType: "hn",
-      status: "approved",
-      approvedAt: new Date(),
-    },
-    {
-      modelId: id("gemini-3-7-flash"),
-      taskCategory: "vision",
-      takeaway:
-        "Correctly read a handwritten whiteboard photo end to end, including a crossed-out line most tools misread as included text.",
-      sourceUrl: "https://news.ycombinator.com/item?id=41000004",
-      sourceType: "hn",
-      status: "approved",
-      approvedAt: new Date(),
-    },
-    {
-      modelId: id("kimi-k3"),
-      taskCategory: "writing",
-      takeaway:
-        "Held a consistent house style across a 12-section document without re-prompting, which the previous version could not do.",
-      sourceUrl: "https://news.ycombinator.com/item?id=41000005",
-      sourceType: "hn",
-      status: "approved",
-      approvedAt: new Date(),
-    },
-    {
-      modelId: id("glm-5-3"),
-      taskCategory: "agentic",
-      takeaway:
-        "Ran an overnight scraping agent on a single GPU without falling over, though it silently skipped two failed pages.",
-      sourceUrl: "https://news.ycombinator.com/item?id=41000006",
-      sourceType: "hn",
-      status: "approved",
-      approvedAt: new Date(),
-    },
-    {
-      modelId: id("gpt-5-6-terra"),
-      taskCategory: "coding",
-      takeaway:
-        "Under review: claimed to fix a race condition in a submitted snippet, reporter says the fix looks plausible but is still testing it under load.",
-      sourceUrl: "https://news.ycombinator.com/item?id=41000007",
-      sourceType: "manual",
-      status: "pending",
-    },
-    {
-      modelId: id("qwen3-8-max"),
-      taskCategory: "other",
-      takeaway:
-        "Submitted report awaiting review — task category and takeaway not yet verified against the source.",
-      sourceUrl: "https://news.ycombinator.com/item?id=41000008",
-      sourceType: "manual",
-      status: "pending",
-    },
-  ]);
+  for (const spec of SEED_REPORTS) {
+    const [row] = await db
+      .insert(reports)
+      .values({
+        taskCategory: spec.taskCategory,
+        takeaway: spec.takeaway,
+        sourceUrl: spec.sourceUrl,
+        sourceType: spec.sourceType,
+        status: spec.status,
+        approvedAt: spec.status === "approved" ? new Date() : null,
+      })
+      .returning({ id: reports.id });
 
-  console.log(`Seed complete: ${inserted.length} models.`);
+    await db
+      .insert(reportModels)
+      .values(spec.modelSlugs.map((slug) => ({ reportId: row!.id, modelId: id(slug) })));
+  }
+
+  console.log(
+    `Seed complete: ${inserted.length} models, ${SEED_REPORTS.length} reports.`,
+  );
   process.exit(0);
 }
 

@@ -37,15 +37,15 @@ export default async function TimelinePage({
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-      <div className="max-w-2xl">
-        <h1 className="font-display text-5xl font-black leading-[0.92] tracking-tight text-ink sm:text-6xl">
+    <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
+      <div className="max-w-4xl">
+        <h1 className="font-display text-4xl font-black leading-[0.95] tracking-tight text-ink sm:text-[2.75rem] lg:text-5xl">
           Track AI model releases
           <br />
-          <span className="font-display mr-3 inline-block -rotate-3 rounded-2xl bg-gold px-4 py-1 align-middle text-3xl tracking-wide text-gold-fg shadow-[0_4px_0_rgba(0,0,0,0.35)] sm:text-4xl">
+          <span className="font-display mr-2.5 inline-block -rotate-3 rounded-xl bg-gold px-3 py-0.5 align-middle text-2xl tracking-wide text-gold-fg shadow-[0_3px_0_rgba(0,0,0,0.35)] sm:text-3xl">
             AND
           </span>
-          see what testers are doing with it.
+          see how they hold up in real use.
         </h1>
       </div>
 

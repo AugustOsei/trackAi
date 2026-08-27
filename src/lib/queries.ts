@@ -1,7 +1,10 @@
-import { and, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { models, reports, subscribers } from "@/db/schema";
+import { models, reports, reportModels, subscribers } from "@/db/schema";
 import type { Model, Report } from "@/db/schema";
+
+/** A model as it appears attached to a report. */
+export type ReportModelRef = { id: number; name: string; slug: string; provider: string };
 
 export async function getTimelineModels(filters: {
   status?: Model["status"];
@@ -12,17 +15,49 @@ export async function getTimelineModels(filters: {
     filters.provider ? eq(models.provider, filters.provider) : undefined,
   ].filter(Boolean);
 
-  return db.query.models.findMany({
+  const rows = await db.query.models.findMany({
     where: conditions.length ? and(...conditions) : undefined,
     orderBy: [desc(sql`coalesce(${models.actualDate}, ${models.predictedDate})`)],
-    with: {
-      reports: {
-        where: eq(reports.status, "approved"),
-        orderBy: [desc(reports.approvedAt)],
-        columns: { id: true, taskCategory: true, takeaway: true },
-      },
-    },
   });
+
+  // Approved reports for these models, one round trip, stitched in JS — the
+  // relation include can't filter by report status through the join table.
+  const modelIds = rows.map((m) => m.id);
+  const links = modelIds.length
+    ? await db.query.reportModels.findMany({
+        where: inArray(reportModels.modelId, modelIds),
+        with: {
+          report: {
+            columns: {
+              id: true,
+              taskCategory: true,
+              takeaway: true,
+              status: true,
+              approvedAt: true,
+            },
+          },
+        },
+      })
+    : [];
+
+  const byModel = new Map<number, { id: number; taskCategory: string; takeaway: string }[]>();
+  const approvedAt = new Map<number, number>();
+  for (const link of links) {
+    if (link.report.status !== "approved") continue;
+    const list = byModel.get(link.modelId) ?? [];
+    list.push({
+      id: link.report.id,
+      taskCategory: link.report.taskCategory,
+      takeaway: link.report.takeaway,
+    });
+    byModel.set(link.modelId, list);
+    approvedAt.set(link.report.id, link.report.approvedAt?.getTime() ?? 0);
+  }
+  for (const list of byModel.values()) {
+    list.sort((a, b) => (approvedAt.get(b.id) ?? 0) - (approvedAt.get(a.id) ?? 0));
+  }
+
+  return rows.map((m) => ({ ...m, reports: byModel.get(m.id) ?? [] }));
 }
 
 export async function getProviders() {
@@ -34,25 +69,67 @@ export async function getProviders() {
 }
 
 export async function getModelBySlug(slug: string) {
-  return db.query.models.findFirst({
-    where: eq(models.slug, slug),
+  const model = await db.query.models.findFirst({ where: eq(models.slug, slug) });
+  if (!model) return undefined;
+
+  const links = await db.query.reportModels.findMany({
+    where: eq(reportModels.modelId, model.id),
     with: {
-      reports: {
-        where: eq(reports.status, "approved"),
-        orderBy: [desc(reports.approvedAt)],
+      report: {
+        with: {
+          reportModels: {
+            with: { model: { columns: { id: true, name: true, slug: true, provider: true } } },
+          },
+        },
       },
     },
   });
+
+  const reports = links
+    .map((l) => l.report)
+    .filter((r) => r.status === "approved")
+    .sort((a, b) => (b.approvedAt?.getTime() ?? 0) - (a.approvedAt?.getTime() ?? 0))
+    .map((r) => ({
+      id: r.id,
+      taskCategory: r.taskCategory,
+      takeaway: r.takeaway,
+      sourceUrl: r.sourceUrl,
+      sourceType: r.sourceType,
+      status: r.status,
+      submittedAt: r.submittedAt,
+      approvedAt: r.approvedAt,
+      // The other models this same test run covered — drives the
+      // "also tested on" line on the model page.
+      otherModels: r.reportModels
+        .map((rm) => rm.model)
+        .filter((mm) => mm.slug !== slug),
+    }));
+
+  return { ...model, reports };
+}
+
+/** Shape reports coming back from a `reports`-side query into `{ ...report, models }`. */
+type ReportWithLinks = Report & { reportModels: { model: ReportModelRef }[] };
+function withModels<T extends ReportWithLinks>(rows: T[]) {
+  return rows.map(({ reportModels: links, ...report }) => ({
+    ...report,
+    models: links.map((l) => l.model),
+  }));
 }
 
 export async function getApprovedReportsFeed(sourceType?: Report["sourceType"]) {
-  return db.query.reports.findMany({
+  const rows = await db.query.reports.findMany({
     where: sourceType
       ? and(eq(reports.status, "approved"), eq(reports.sourceType, sourceType))
       : eq(reports.status, "approved"),
     orderBy: [desc(reports.approvedAt)],
-    with: { model: true },
+    with: {
+      reportModels: {
+        with: { model: { columns: { id: true, name: true, slug: true, provider: true } } },
+      },
+    },
   });
+  return withModels(rows);
 }
 
 /**
@@ -72,11 +149,34 @@ export async function getApprovedSourceCounts() {
 }
 
 export async function getPendingReports() {
-  return db.query.reports.findMany({
+  const rows = await db.query.reports.findMany({
     where: eq(reports.status, "pending"),
     orderBy: [desc(reports.submittedAt)],
-    with: { model: true },
+    with: {
+      reportModels: {
+        with: { model: { columns: { id: true, name: true, slug: true, provider: true } } },
+      },
+    },
   });
+  return withModels(rows);
+}
+
+/**
+ * Recently approved reports, newest first — the /admin list for fixing a
+ * report that was published against the wrong model.
+ */
+export async function getRecentApprovedReports(limit = 40) {
+  const rows = await db.query.reports.findMany({
+    where: eq(reports.status, "approved"),
+    orderBy: [desc(reports.approvedAt)],
+    limit,
+    with: {
+      reportModels: {
+        with: { model: { columns: { id: true, name: true, slug: true, provider: true } } },
+      },
+    },
+  });
+  return withModels(rows);
 }
 
 export async function getModelOptionsForSubmit() {

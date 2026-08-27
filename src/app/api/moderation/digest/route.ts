@@ -30,8 +30,11 @@ export async function GET(request: Request) {
     linkExpiresInHours: MODERATION_TOKEN_TTL_SECONDS / 3600,
     reports: pending.map((report) => ({
       id: report.id,
-      model: report.model.name,
-      provider: report.model.provider,
+      // `model`/`provider` stay as the first model so the existing email
+      // template keeps working; `models` carries the full list.
+      model: report.models.map((m) => m.name).join(" · "),
+      provider: report.models[0]?.provider ?? "",
+      models: report.models.map((m) => ({ name: m.name, provider: m.provider })),
       taskCategory: report.taskCategory,
       takeaway: report.takeaway,
       sourceUrl: report.sourceUrl,

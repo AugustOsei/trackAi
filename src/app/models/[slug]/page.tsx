@@ -172,7 +172,12 @@ export default async function ModelDetailPage({
                 </h3>
                 <div className="space-y-3">
                   {categoryReports.map((report) => (
-                    <ReportCard key={report.id} report={report} showModel={false} />
+                    <ReportCard
+                      key={report.id}
+                      report={report}
+                      showModel={false}
+                      alsoTestedOn={report.otherModels}
+                    />
                   ))}
                 </div>
               </div>

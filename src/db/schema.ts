@@ -12,6 +12,7 @@ import {
   pgEnum,
   index,
   uniqueIndex,
+  primaryKey,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -123,9 +124,6 @@ export const reports = pgTable(
   "reports",
   {
     id: serial("id").primaryKey(),
-    modelId: integer("model_id")
-      .notNull()
-      .references(() => models.id, { onDelete: "cascade" }),
     taskCategory: taskCategoryEnum("task_category").notNull(),
     takeaway: text("takeaway").notNull(),
     sourceUrl: text("source_url").notNull(),
@@ -135,9 +133,35 @@ export const reports = pgTable(
     approvedAt: timestamp("approved_at", { withTimezone: true }),
   },
   (table) => [
-    index("reports_model_status_idx").on(table.modelId, table.status),
     index("reports_status_submitted_idx").on(table.status, table.submittedAt),
     uniqueIndex("reports_source_url_idx").on(table.sourceUrl),
+  ],
+);
+
+/** A report can name up to this many models — one prompt run as a bake-off. */
+export const MAX_MODELS_PER_REPORT = 5;
+
+/**
+ * Which models a report is about. A report is one account of one test run —
+ * but a test run can be the same prompt across several models to compare
+ * them, so a report attaches to one *or more* models rather than exactly
+ * one. Every model a report names shows that report on its page.
+ */
+export const reportModels = pgTable(
+  "report_models",
+  {
+    reportId: integer("report_id")
+      .notNull()
+      .references(() => reports.id, { onDelete: "cascade" }),
+    modelId: integer("model_id")
+      .notNull()
+      .references(() => models.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.reportId, table.modelId] }),
+    // The model-page query filters by model_id, so it gets its own index —
+    // the composite primary key only helps when report_id comes first.
+    index("report_models_model_status_idx").on(table.modelId),
   ],
 );
 
@@ -178,12 +202,20 @@ export const subscribers = pgTable(
 );
 
 export const modelsRelations = relations(models, ({ many }) => ({
-  reports: many(reports),
+  reportModels: many(reportModels),
 }));
 
-export const reportsRelations = relations(reports, ({ one }) => ({
+export const reportsRelations = relations(reports, ({ many }) => ({
+  reportModels: many(reportModels),
+}));
+
+export const reportModelsRelations = relations(reportModels, ({ one }) => ({
+  report: one(reports, {
+    fields: [reportModels.reportId],
+    references: [reports.id],
+  }),
   model: one(models, {
-    fields: [reports.modelId],
+    fields: [reportModels.modelId],
     references: [models.id],
   }),
 }));
@@ -192,5 +224,6 @@ export type Model = typeof models.$inferSelect;
 export type NewModel = typeof models.$inferInsert;
 export type Report = typeof reports.$inferSelect;
 export type NewReport = typeof reports.$inferInsert;
+export type ReportModel = typeof reportModels.$inferSelect;
 export type Subscriber = typeof subscribers.$inferSelect;
 export type NewSubscriber = typeof subscribers.$inferInsert;
