@@ -124,6 +124,30 @@ export default function AboutPage() {
           category it falls under.
         </p>
       </section>
+
+      <section className="mt-12">
+        <h2 className="font-display text-3xl font-black tracking-tight text-ink">
+          Who&rsquo;s behind this
+        </h2>
+        <p className="mt-2 text-ink">
+          trackai is built by{" "}
+          <a
+            href="https://www.linkedin.com/in/augustineosei/"
+            className="text-gold hover:underline"
+          >
+            Augustine Osei
+          </a>
+          , in public, on{" "}
+          <a
+            href="https://www.theaugustdispatch.com"
+            className="text-gold hover:underline"
+          >
+            The August Dispatch
+          </a>{" "}
+          — a blog documenting the decisions, dead ends, and rewrites behind
+          it as they happen, not a polished writeup after the fact.
+        </p>
+      </section>
     </div>
   );
 }
