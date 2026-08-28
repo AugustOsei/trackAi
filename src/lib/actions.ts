@@ -8,7 +8,12 @@ import { z } from "zod";
 import { db } from "@/db";
 import { models, reports, reportModels, subscribers, MAX_MODELS_PER_REPORT } from "@/db/schema";
 import { verifyPassword } from "@/lib/password";
-import { checkAndRecordSubmission, clientIpFrom } from "@/lib/rate-limit";
+import {
+  checkAndRecordSubmission,
+  checkLoginRate,
+  recordLoginFailure,
+  clientIpFrom,
+} from "@/lib/rate-limit";
 import {
   createSessionCookieValue,
   SESSION_COOKIE_NAME,
@@ -113,6 +118,17 @@ export async function login(
   const parsed = loginSchema.safeParse({ password: formData.get("password") });
   if (!parsed.success) return { error: "Enter the password." };
 
+  // Rate-limit by IP before doing any work. Failures only are counted
+  // (below), so a real login never eats the budget and a sprayer only ever
+  // locks their own address.
+  const ip = clientIpFrom(await headers());
+  const gate = await checkLoginRate(ip);
+  if (!gate.allowed) {
+    return {
+      error: `Too many attempts. Try again in about ${gate.retryAfterMinutes} minutes.`,
+    };
+  }
+
   const hash = process.env.ADMIN_PASSWORD_HASH;
   const secret = process.env.ADMIN_SESSION_SECRET;
   if (!hash || !secret) {
@@ -120,6 +136,10 @@ export async function login(
   }
 
   if (!verifyPassword(parsed.data.password, hash)) {
+    await recordLoginFailure(ip);
+    // Slow high-rate spraying beyond the per-window cap, including from
+    // rotating IPs. Cheap on a legitimate mistyped password.
+    await new Promise((resolve) => setTimeout(resolve, 500 + Math.random() * 600));
     return { error: "Wrong password." };
   }
 

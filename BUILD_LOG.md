@@ -1228,3 +1228,33 @@ upserts, and there was no delete-model control anywhere.
 - Verified on dev: filtered, deleted a 0-report rumor row (50 → 49), and
   confirmed the "3 report(s) lose this model" warning shows for Opus 5
   without deleting it.
+
+## 2026-08-27 — Hardening the admin login
+
+The admin gate was password-only with no throttle on the login action
+itself — the submit form and signup were rate-limited, `login()` was not.
+That's the gap a password sprayer uses.
+
+- **`login()` is rate-limited by IP:** 5 failed attempts per 15 min, then
+  that IP is locked out for 15 min. Failures only are counted, so a real
+  login never eats the budget and a sprayer only locks their own address.
+  Reuses the existing `submission_attempts` table with a `login:` bucket
+  prefix — no migration.
+- **~0.5–1.1 s delay on every wrong password**, to slow high-rate spraying
+  even from rotating IPs. Cheap on a genuine typo.
+- **Client IP now prefers `x-real-ip`** (Vercel sets it from the
+  connection; `x-forwarded-for` leftmost is client-appendable and was
+  spoofable). Fixes the submit limiter too.
+- **Optional `ADMIN_IP_ALLOWLIST`** (comma-separated IPs) in `proxy.ts`:
+  when set, any other IP gets a bare 404 before the login page renders.
+  Opt-in — empty by default.
+- **`noindex` + `no-referrer` on the login page**, second layer over the
+  robots.txt disallow.
+- Verified on dev: 5 wrong passwords return "Wrong password.", the 6th
+  returns "Too many attempts…", exactly 5 rows recorded.
+
+Still on Augustine: set a long random `ADMIN_PASSWORD_HASH` (a 24-byte
+random string + scrypt makes brute force pointless once rate-limited), and
+optionally rotate `ADMIN_SESSION_SECRET`. Recovery if you lock yourself
+out: wait 15 min, or `delete from submission_attempts` from a box with DB
+access.
