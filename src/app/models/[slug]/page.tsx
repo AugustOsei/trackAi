@@ -45,7 +45,7 @@ export default async function ModelDetailPage({
       </Link>
 
       <header className="mt-4 flex items-start gap-4 sm:gap-5">
-        <ProviderBadge provider={model.provider} size="lg" muted={model.status === "rumored"} />
+        <ProviderBadge provider={model.provider} size="lg" muted={model.status !== "released"} />
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <StatusDot status={model.status} showLabel />

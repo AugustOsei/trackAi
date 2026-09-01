@@ -1258,3 +1258,63 @@ random string + scrypt makes brute force pointless once rate-limited), and
 optionally rotate `ADMIN_SESSION_SECRET`. Recovery if you lock yourself
 out: wait 15 min, or `delete from submission_attempts` from a box with DB
 access.
+
+## 2026-09-01 — Fable 5.1 missing, and rumors that never resolve
+
+Fable 5.1 shipped today and the grid showed it as a *rumor* estimated for
+Sep 7. Two separate causes, both data rather than code.
+
+- **The seed is not the database.** `98fd05a` added Claude Fable 5.1 to
+  `seed-data.ts`, but that file only reaches prod through
+  `npm run db:sync-models`, which hadn't been run. Prod had no
+  `claude-fable-5-1` row at all — what rendered was an n8n rumor row
+  scraped from modelrumor.com on Aug 25.
+
+- **Slug drift makes rumors un-mergeable.** The rumor bot coins its own
+  slugs — `fable-5-1`, `opus-6`, `gpt-6-astra-doug` — that don't match the
+  seed's convention (`claude-fable-5-1`, `claude-opus-6`, `gpt-6`). Since
+  `/api/ingest/models` upserts on slug, running the sync over a bot-coined
+  rumor *adds a second row* rather than resolving the first. The rumor has
+  to be deleted before the sync, not after. Worth remembering: any
+  "the real one finally shipped" fix has this ordering trap.
+
+- **Checked before syncing** whether the seed would clobber prod's
+  claim-workflow enrichment, since the upsert sets `claimed_benchmarks`
+  and `price_per_mtok` from `excluded` unconditionally. It wouldn't — the
+  seed is currently a superset (identical Opus 5 benchmarks, same prices).
+  That's luck, not design: if n8n ever enriches a model the seed doesn't
+  carry the same figures for, a full sync will wipe those columns. A
+  `coalesce`, as `provider_blurb` and `announcement_url` already use,
+  would make that safe.
+
+- **Pruned 8 rows from prod** (backed up to `backup-deleted-rumors.json`
+  first): the superseded `fable-5-1`; placeholder junk `something` and
+  `model-2`; duplicates `opus-6` and `gpt-6-astra-doug`; and three dead
+  predictions — `gpt-5-7-zinc-magnesium` (est. Aug 29),
+  `glm-5-3-weights` (est. Aug 31, and GLM-5.3 itself shipped Aug 13), and
+  `gemini-3-5-pro` (overtaken — 3.6 and 3.7 have both shipped). Kept
+  `gemini-3-8-flash`: its date is today, so it hasn't missed anything yet.
+  No approved report was attached to any of them.
+
+- **The structural bug: nothing ages out a rumor.** Because the timeline is
+  strictly chronological, an unfulfilled prediction slides above the TODAY
+  marker and sits among real releases still reading as a forward-looking
+  `EST.` — which is how three dead rumors passed as history. Now an
+  unreleased model whose predicted date has passed strikes through its date
+  and carries an outlined `OVERDUE` pill, the quiet counterpart to the
+  filled gold `NEW`. Verified on dev with a temporary fixture dated 12 days
+  ago, then removed.
+
+- **Follow-up, same day:** Augustine spotted Qwen 4 rendering in full Alibaba
+  colour despite not having shipped. The provider badge's `muted` flag was
+  keyed on `status === "rumored"`, which silently skips the third state —
+  `announced`. Qwen 4 is the only announced model on either database, so the
+  gap had never shown itself. Now keyed on `status !== "released"` at both
+  call sites (timeline entry and model page): colour means the model exists.
+  Nothing is lost by collapsing the two unreleased states here — `StatusDot`
+  already separates them (hollow = rumored, half = announced). Verified all
+  4 unreleased entries desaturate and all 47 released ones keep their colour.
+
+This is a treatment, not a cure — the rows are still labelled by hand.
+The real fix is a pass that asks "did this ship?" and either promotes the
+rumor or retires it.

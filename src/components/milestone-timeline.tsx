@@ -338,6 +338,11 @@ export function MilestoneTimeline({ models }: { models: TimelineModel[] }) {
                 groupIndex += 1;
 
                 const unreleased = row.models.every((m) => m.status !== "released");
+                // A prediction whose date has come and gone. Worth calling
+                // out because the timeline is strictly chronological: an
+                // unfulfilled estimate sits above the TODAY marker among
+                // real releases, where it otherwise reads as history.
+                const overdue = unreleased && row.date.getTime() < today.getTime();
 
                 return (
                   <div key={row.key} className="grid py-2 sm:grid-cols-2 sm:gap-x-16">
@@ -352,7 +357,9 @@ export function MilestoneTimeline({ models }: { models: TimelineModel[] }) {
                     >
                       <span className="font-data text-[11px] tracking-wider whitespace-nowrap text-ink-muted">
                         {unreleased && <span className="text-ink-faint">EST. </span>}
-                        {formatDayMonth(row.date)}
+                        <span className={overdue ? "text-ink-faint line-through" : ""}>
+                          {formatDayMonth(row.date)}
+                        </span>
                       </span>
                       {row.models.length > 1 && (
                         <span className="font-data ml-2 text-[10px] text-ink-faint">
@@ -377,6 +384,7 @@ export function MilestoneTimeline({ models }: { models: TimelineModel[] }) {
                             color={providerStyle(m.provider).color}
                             onLeft={onLeft}
                             showDot={n === 0}
+                            overdue={overdue && m.status !== "released"}
                             index={i}
                           />
                         ))}

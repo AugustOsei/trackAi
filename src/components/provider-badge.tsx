@@ -13,8 +13,10 @@ export function ProviderBadge({
 }: {
   provider: string;
   size?: keyof typeof SIZES;
-  /** Rumored, not confirmed by anyone — the badge desaturates rather than
-   *  carrying a brand color it hasn't earned yet. */
+  /** Not shipped yet — rumored *or* merely announced. The badge desaturates
+   *  rather than carrying a brand color it hasn't earned yet; full color is
+   *  reserved for models that actually exist. The rumored/announced
+   *  distinction is carried by `StatusDot`, not by this. */
   muted?: boolean;
 }) {
   const style = providerStyle(provider);

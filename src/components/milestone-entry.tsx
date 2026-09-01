@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ProviderBadge } from "@/components/provider-badge";
 import { StatusDot } from "@/components/status-dot";
-import { NewBadge } from "@/components/new-badge";
+import { NewBadge, OverdueBadge } from "@/components/new-badge";
 import { TaskTag } from "@/components/task-tag";
 import { formatDate, formatPrice, isRecent } from "@/lib/format";
 import type { Model } from "@/db/schema";
@@ -31,6 +31,7 @@ export function MilestoneEntry({
   color,
   onLeft,
   showDot,
+  overdue,
   index,
 }: {
   model: TimelineModel;
@@ -40,6 +41,8 @@ export function MilestoneEntry({
   /** Only the first model of a shared date carries the axis dot; every model
    *  still gets its own trail so nothing floats unconnected. */
   showDot: boolean;
+  /** An unreleased model whose predicted date has already passed. */
+  overdue: boolean;
   index: number;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -97,7 +100,7 @@ export function MilestoneEntry({
                 <ProviderBadge
                   provider={model.provider}
                   size="md"
-                  muted={model.status === "rumored"}
+                  muted={model.status !== "released"}
                 />
               </span>
             </span>
@@ -111,6 +114,7 @@ export function MilestoneEntry({
             <span className="truncate">{model.name}</span>
             <StatusDot status={model.status} />
             {isNew && <NewBadge />}
+            {overdue && <OverdueBadge />}
           </span>
         </span>
       </button>
@@ -127,7 +131,9 @@ export function MilestoneEntry({
               {model.provider} ·{" "}
               {model.status === "released"
                 ? formatDate(date)
-                : `expected ${formatDate(date)}`}
+                : overdue
+                  ? `expected ${formatDate(date)} — still unreleased`
+                  : `expected ${formatDate(date)}`}
             </p>
 
             {model.providerBlurb && <p className="text-sm text-ink">{model.providerBlurb}</p>}
