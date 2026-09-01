@@ -1318,3 +1318,33 @@ Sep 7. Two separate causes, both data rather than code.
 This is a treatment, not a cure — the rows are still labelled by hand.
 The real fix is a pass that asks "did this ship?" and either promotes the
 rumor or retires it.
+
+## 2026-09-01 — The other model Anthropic shipped today
+
+Augustine noticed the grid had Fable 5.1 but not **Claude Mythos 5.1**,
+released the same day. He was right — neither database had a Mythos row of
+any kind, and the tracker showed one Anthropic release for a day that had
+two.
+
+- **Verified before writing anything.** A model name that isn't in my
+  training data is not evidence it doesn't exist, and it isn't evidence it
+  does either. Confirmed against Anthropic's own page plus independent
+  coverage: `claude-mythos-5-1`, released 2026-09-01, $10/$50 per Mtok, 1M
+  context. Only then did it go in the seed.
+
+- **Same model, different safeguards.** Fable 5.1 and Mythos 5.1 are the
+  same underlying model under different safeguard layers. Mythos scores
+  *higher* — 60.9% vs 55.8% on Terminal-Bench 4.0 — with Anthropic
+  attributing the gap to "the cost of safeguard interventions". Recorded
+  that figure as the claimed benchmark.
+
+- **Kept the access restriction in the blurb.** Mythos is limited to vetted
+  US organizations through Project Glasswing — not something a reader can
+  go and use. Anthropic's own description says so, so the claim layer
+  stays the provider's words and still carries the caveat.
+
+- **Why the pipeline missed it:** the claim-sync workflow found Fable 5.1
+  and not Mythos, most likely because Mythos has no public API listing to
+  scrape. This will recur every time a lab ships a restricted-access model.
+  Worth a look at whether the workflow can read announcement pages rather
+  than model listings.

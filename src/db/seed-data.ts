@@ -449,6 +449,24 @@ export const SEED: NewModel[] = [
       "Point update to Fable 5 — gains on coding, reasoning, agentic search and multi-agent work, with cache reads 75% cheaper and ~25% lower cost overall.",
     ...price("10.000"),
   },
+  // Shipped the same day as Fable 5.1 and is the same underlying model — the
+  // two differ only in their safeguard layers, which is why Mythos scores
+  // higher on Terminal-Bench (Anthropic attributes the gap to "the cost of
+  // safeguard interventions"). Tracked as released because it was, but the
+  // blurb keeps Anthropic's own sentence about restricted access: a reader
+  // should not come away thinking this is something they can go and use.
+  {
+    name: "Claude Mythos 5.1",
+    slug: "claude-mythos-5-1",
+    provider: "Anthropic",
+    announcementUrl: "https://www.anthropic.com/claude/mythos",
+    claimedBenchmarks: [{ label: "Terminal-Bench 4.0", value: "60.9%" }],
+    status: "released",
+    actualDate: "2026-09-01",
+    providerBlurb:
+      "Newest Mythos-class model, with gains in cybersecurity and biology. The same underlying model as Fable 5.1 under a different safeguard layer; access remains limited to a small set of vetted organizations through Project Glasswing.",
+    ...price("10.000"),
+  },
 
   // ── Unconfirmed: announced or rumored, not sourced claims ────────────────
   {
