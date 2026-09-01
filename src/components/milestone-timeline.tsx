@@ -337,7 +337,16 @@ export function MilestoneTimeline({ models }: { models: TimelineModel[] }) {
                 const i = groupIndex;
                 groupIndex += 1;
 
-                const unreleased = row.models.every((m) => m.status !== "released");
+                const shipped = row.models.filter((m) => m.status === "released");
+                const expected = row.models.filter((m) => m.status !== "released");
+                const unreleased = shipped.length === 0;
+                // A day can hold both a real release and a prediction that
+                // named the same date. The date column is shared by the whole
+                // group, so its EST. prefix only applies when nothing in the
+                // group shipped — a mixed day marks its estimates per entry
+                // instead, otherwise a rumor inherits a bare date and reads
+                // exactly like the release beside it.
+                const mixed = shipped.length > 0 && expected.length > 0;
                 // A prediction whose date has come and gone. Worth calling
                 // out because the timeline is strictly chronological: an
                 // unfulfilled estimate sits above the TODAY marker among
@@ -363,7 +372,9 @@ export function MilestoneTimeline({ models }: { models: TimelineModel[] }) {
                       </span>
                       {row.models.length > 1 && (
                         <span className="font-data ml-2 text-[10px] text-ink-faint">
-                          {row.models.length} releases
+                          {shipped.length > 0 && `${shipped.length} release${shipped.length > 1 ? "s" : ""}`}
+                          {mixed && " · "}
+                          {expected.length > 0 && `${expected.length} expected`}
                         </span>
                       )}
                     </div>
@@ -384,6 +395,7 @@ export function MilestoneTimeline({ models }: { models: TimelineModel[] }) {
                             color={providerStyle(m.provider).color}
                             onLeft={onLeft}
                             showDot={n === 0}
+                            estimated={mixed && m.status !== "released"}
                             overdue={overdue && m.status !== "released"}
                             index={i}
                           />

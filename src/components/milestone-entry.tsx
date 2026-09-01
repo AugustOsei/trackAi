@@ -31,6 +31,7 @@ export function MilestoneEntry({
   color,
   onLeft,
   showDot,
+  estimated,
   overdue,
   index,
 }: {
@@ -41,6 +42,9 @@ export function MilestoneEntry({
   /** Only the first model of a shared date carries the axis dot; every model
    *  still gets its own trail so nothing floats unconnected. */
   showDot: boolean;
+  /** Unreleased, but sharing its date marker with something that did ship —
+   *  so the shared date column can't carry the EST. prefix for it. */
+  estimated: boolean;
   /** An unreleased model whose predicted date has already passed. */
   overdue: boolean;
   index: number;
@@ -114,6 +118,9 @@ export function MilestoneEntry({
             <span className="truncate">{model.name}</span>
             <StatusDot status={model.status} />
             {isNew && <NewBadge />}
+            {estimated && !overdue && (
+              <span className="font-data text-[10px] tracking-wider text-ink-faint">EST.</span>
+            )}
             {overdue && <OverdueBadge />}
           </span>
         </span>
