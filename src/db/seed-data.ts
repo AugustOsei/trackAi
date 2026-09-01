@@ -438,6 +438,18 @@ export const SEED: NewModel[] = [
       "First natively multimodal GLM-5 release — 320B total / 18B active, MIT-licensed, tested publicly as “Ox Alpha”.",
   },
 
+  // ── September 2026 ───────────────────────────────────────────────────────
+  {
+    name: "Claude Fable 5.1",
+    slug: "claude-fable-5-1",
+    provider: "Anthropic",
+    status: "released",
+    actualDate: "2026-09-01",
+    providerBlurb:
+      "Point update to Fable 5 — gains on coding, reasoning, agentic search and multi-agent work, with cache reads 75% cheaper and ~25% lower cost overall.",
+    ...price("10.000"),
+  },
+
   // ── Unconfirmed: announced or rumored, not sourced claims ────────────────
   {
     name: "Qwen 4",
