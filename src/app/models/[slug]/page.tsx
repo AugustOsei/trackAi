@@ -71,7 +71,12 @@ export default async function ModelDetailPage({
               : `CLAIM — WHAT ${model.provider.toUpperCase()} SAYS`}
         </h2>
 
-        {model.announcementUrl ? (
+        {/* Keyed on the blurb itself, not on whether an announcement link was
+            also recorded — those are two different fields, and gating one on
+            the other hid a recorded summary on every model still waiting for
+            its announcement to be sourced. Provenance is stated below either
+            way, so an unsourced summary says so rather than going missing. */}
+        {model.providerBlurb ? (
           <p className="mt-4 max-w-2xl text-lg leading-relaxed text-ink">
             {model.providerBlurb}
           </p>
@@ -92,7 +97,7 @@ export default async function ModelDetailPage({
           </p>
         )}
 
-        {claims.length > 0 && (
+        {(claims.length > 0 || model.pricePerMtok) && (
           <dl className="mt-6 grid grid-cols-2 gap-5 sm:grid-cols-3">
             {claims.map((c) => (
               <div key={c.label}>

@@ -443,10 +443,17 @@ export const SEED: NewModel[] = [
     name: "Claude Fable 5.1",
     slug: "claude-fable-5-1",
     provider: "Anthropic",
+    announcementUrl: "https://www.anthropic.com/claude-fable-and-mythos-5-1",
+    claimedBenchmarks: [
+      { label: "Terminal-Bench 4.0", value: "55.8%" },
+      { label: "Terminal-Bench-Science 0.1", value: "52.6%" },
+      { label: "OSWorld 2.0 (strict)", value: "41.7%" },
+      { label: "Humanity's Last Exam (tools)", value: "65.0%" },
+    ],
     status: "released",
     actualDate: "2026-09-01",
     providerBlurb:
-      "Point update to Fable 5 — gains on coding, reasoning, agentic search and multi-agent work, with cache reads 75% cheaper and ~25% lower cost overall.",
+      "Anthropic's most advanced model for coding and knowledge work, with the largest gains on terminal-based scientific and engineering work, computer use, and long-horizon agentic tasks. Around 25% cheaper than Fable 5 for typical workloads, with cache reads down 75%.",
     ...price("10.000"),
   },
   // Shipped the same day as Fable 5.1 and is the same underlying model — the
@@ -459,7 +466,7 @@ export const SEED: NewModel[] = [
     name: "Claude Mythos 5.1",
     slug: "claude-mythos-5-1",
     provider: "Anthropic",
-    announcementUrl: "https://www.anthropic.com/claude/mythos",
+    announcementUrl: "https://www.anthropic.com/claude-fable-and-mythos-5-1",
     claimedBenchmarks: [{ label: "Terminal-Bench 4.0", value: "60.9%" }],
     status: "released",
     actualDate: "2026-09-01",

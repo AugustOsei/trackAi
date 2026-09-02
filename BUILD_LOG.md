@@ -1348,3 +1348,41 @@ two.
   scrape. This will recur every time a lab ships a restricted-access model.
   Worth a look at whether the workflow can read announcement pages rather
   than model listings.
+
+## 2026-09-01 — An empty claim panel, and two fields gating each other
+
+Augustine: the grid shows a summary for Fable 5.1, but opening the model
+page shows nothing under CLAIM — WHAT ANTHROPIC SAYS. Both halves of that
+were the same bug.
+
+- **The summary was keyed on the announcement URL.** The model page read
+  `model.announcementUrl ? <blurb> : rumorSummary ? ... : "No summary
+  recorded yet."` — so a model with a perfectly good `providerBlurb` and no
+  sourced announcement rendered the empty state, while the timeline (which
+  reads the blurb directly) showed it. Same data, present in one view and
+  missing in the other, which is exactly how it got noticed.
+
+- **The price was inside the benchmarks block.** `{claims.length > 0 && ...}`
+  wrapped the whole `<dl>`, price included, so a model with a published price
+  and no benchmark figures showed neither.
+
+- **Not a one-off:** 19 of 58 models had a hidden summary and 16 had a hidden
+  price. Third instance this week of the same failure shape — one field's
+  presence gating an unrelated field (`status === "rumored"` skipping
+  `announced`; `every()` erasing the EST. marker on a mixed day). Worth
+  watching for as a class.
+
+- **Filled in Fable 5.1's claim layer properly** from Anthropic's own
+  announcement rather than leaving it thin: Terminal-Bench 4.0 55.8%,
+  Terminal-Bench-Science 0.1 52.6%, OSWorld 2.0 (strict) 41.7%, HLE with
+  tools 65.0%, and the real announcement URL.
+
+- **Checked a number I'd taken from a third party.** Yesterday's Mythos entry
+  recorded Terminal-Bench 4.0 at 60.9% sourced from a news write-up, and
+  Anthropic's own page lists 60.9% against *Humanity's Last Exam* for Fable —
+  so the figure looked like it might have been misattributed. Re-read
+  Anthropic's chart: Mythos really does score 60.9% on Terminal-Bench 4.0,
+  and the two 60.9%s are a coincidence. Entry stands, now sourced to the
+  announcement itself rather than the write-up. The claim layer promises
+  first-party figures; a number that only a third party vouches for doesn't
+  belong under a heading with the provider's name on it.
