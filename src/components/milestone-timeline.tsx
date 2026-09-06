@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MilestoneEntry } from "@/components/milestone-entry";
+import { ShipMark } from "@/components/ship-mark";
 import { providerStyle } from "@/lib/providers";
 import { formatDate, formatDayMonth, formatMonthYear, formatMonthYearShort } from "@/lib/format";
 import type { Model } from "@/db/schema";
@@ -269,7 +270,12 @@ export function MilestoneTimeline({ models }: { models: TimelineModel[] }) {
   }, []);
 
   if (!models.length) {
-    return <p className="mt-10 text-sm text-ink-muted">Nothing matches those filters yet.</p>;
+    return (
+      <div className="mt-10 flex flex-col items-center gap-3 py-10 text-center">
+        <ShipMark className="h-10 w-10 text-ink-faint/60" />
+        <p className="text-sm text-ink-muted">Nothing matches those filters yet.</p>
+      </div>
+    );
   }
 
   let groupIndex = 0;

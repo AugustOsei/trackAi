@@ -314,6 +314,215 @@ body {
   }
 }
 
+/* Hero horizon — two gold hairlines with the mascot riding them, rather than
+   a filled sea. Deliberately restrained: the timeline below already owns a
+   lot of motion (a 1.7s roll on every mount, staggered card entrances, the
+   idle float, the Roll hint wiggle), so anything up here has to read as
+   ambient and stay out of the way of it.
+
+   The edge mask fades both lines out before they reach the container edge,
+   so the horizon reads as continuing past the page instead of stopping at a
+   hard vertical cut. The ship sits well inside the fade. */
+.hero-horizon {
+  position: relative;
+  height: 6.5rem;
+  overflow: hidden;
+  color: var(--color-gold);
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+}
+
+.hero-wave {
+  position: absolute;
+  left: 0;
+  width: 200%;
+  height: 1.25rem;
+}
+
+/* The wave is stretched to an arbitrary width by preserveAspectRatio="none",
+   which would stretch its stroke with it. This holds the stroke at a true
+   1.5px however wide the container gets. */
+.hero-wave path {
+  vector-effect: non-scaling-stroke;
+}
+
+/* The far line: dimmer, and only just above the near one. It has to stay at
+   or below the ship's deck so the solid hull occludes it — any higher and the
+   far horizon runs visibly through the sails, which reads as a mistake rather
+   than as distance. So the parallax here is carried entirely by the two lines
+   drifting at different speeds, not by spacing them apart. There is no third
+   layer and no fill. */
+.hero-wave-back {
+  bottom: 1.3rem;
+  opacity: 0.28;
+}
+
+/* The near wave's fade sits on its gold stroke, not on the element. The
+   element also carries the background-colored halo stroke that cuts the
+   waterline through the hull, and that one has to stay fully opaque or the
+   hull shows straight through it. */
+.hero-wave-front {
+  bottom: 0.9rem;
+}
+
+.hero-wave-front > path:last-of-type {
+  stroke-opacity: 0.55;
+}
+
+/* The waterline. This box is static and its bottom edge sits exactly on the
+   near wave's centre line, so everything below the water is clipped away —
+   without it the hull's keel hangs beneath the wave as a detached gold
+   crescent. The bob happens *inside* this box, which means the ship really
+   does rise and sink through a fixed water level rather than carrying the
+   water up and down with it. The wave's background-colored halo is what hides
+   the fact that this cut is a straight line and the wave is not. */
+.hero-ship-well {
+  position: absolute;
+  right: 16%;
+  bottom: 1.525rem;
+  width: 4rem;
+  height: 3.75rem;
+  overflow: hidden;
+}
+
+/* Pulled down by half a hull so the hull's midpoint lands on the well's
+   bottom edge — i.e. the ship floats at its waterline, not on top of it. */
+.hero-ship {
+  position: absolute;
+  left: 0;
+  bottom: -0.73rem;
+  width: 4rem;
+  height: 4rem;
+}
+
+/* Bob and rock are split across two elements so neither transform clobbers
+   the other, the same split the timeline icons use for pop-vs-float. The
+   pivot sits down at the waterline, not at the mark's center, so the ship
+   rolls on the water instead of spinning around its own mast. */
+.hero-ship-rock {
+  height: 100%;
+  width: 100%;
+  transform-origin: 50% 82%;
+}
+
+@keyframes hero-wave-drift {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-25%);
+  }
+}
+
+/* Small on purpose, and centered on the rest position rather than lifting
+   from it. Only a few pixels of hull sit below the waterline, so a bob any
+   larger than this hauls the whole ship clear of the water at the top of
+   every cycle — it stops reading as floating and starts reading as hovering. */
+@keyframes hero-ship-bob {
+  0%,
+  100% {
+    transform: translateY(2px);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes hero-ship-rock {
+  0%,
+  100% {
+    transform: rotate(-2.5deg);
+  }
+  50% {
+    transform: rotate(2.5deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hero-wave-back {
+    animation: hero-wave-drift 26s linear infinite;
+  }
+  .hero-wave-front {
+    animation: hero-wave-drift 15s linear infinite;
+  }
+  /* 4.5s matches the timeline's idle float, so the two ambient loops on the
+     page breathe at the same rate. The rock runs on a deliberately unrelated
+     period: locking them would look mechanical, drifting in and out of phase
+     looks like water. */
+  .hero-ship {
+    animation: hero-ship-bob 4.5s ease-in-out infinite;
+  }
+  .hero-ship-rock {
+    animation: hero-ship-rock 6s ease-in-out infinite;
+  }
+}
+
+@media (min-width: 640px) {
+  .hero-horizon {
+    height: 7.5rem;
+  }
+  .hero-ship-well {
+    width: 5rem;
+    height: 4.5rem;
+  }
+  .hero-ship {
+    width: 5rem;
+    height: 5rem;
+    bottom: -0.91rem;
+  }
+}
+
+/* Second half of the headline, tied to page scroll. It arrives — it is never
+   hidden. The from-state is dimmed and nudged down, not transparent, so a
+   reader who never scrolls still gets the full sentence; scrolling settles it
+   rather than revealing it. Anything less than that would be a headline that
+   withholds half its message from whoever doesn't touch the wheel.
+   Everyone outside the guards below (reduced motion, or a browser without
+   scroll-driven animations) gets the finished state and nothing else. */
+@keyframes hero-reveal {
+  from {
+    transform: translateY(0.35em);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* Only the words fade. Putting opacity on the whole line dragged the gold
+   AND badge down with it, and gold at partial alpha over near-black turns a
+   muddy olive that reads as a disabled control rather than as copy waiting to
+   arrive. 0.45 lands the text around the site's own ink-muted grey, so it is
+   ordinary readable body contrast at rest and brightens to full ink. */
+@keyframes hero-reveal-text {
+  from {
+    opacity: 0.45;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: scroll()) {
+    .hero-reveal,
+    .hero-reveal-text {
+      animation-timeline: scroll(root block);
+      /* Short range on purpose: the timeline card starts near the fold and is
+         its own scroll container, so the settle needs to be finished well
+         before the reader's pointer ever reaches it. */
+      animation-range: 0 160px;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+    }
+    .hero-reveal {
+      animation-name: hero-reveal;
+    }
+    .hero-reveal-text {
+      animation-name: hero-reveal-text;
+    }
+  }
+}
+
 .timeline-scroll {
   scrollbar-width: thin;
   scrollbar-color: var(--color-hairline) transparent;
