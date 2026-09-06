@@ -10,17 +10,30 @@ import { ShipMark } from "@/components/ship-mark";
  */
 const WAVE_PATH = "M0 10Q15 3 30 10T60 10T90 10T120 10T150 10T180 10T210 10T240 10";
 
-function WaveLine({ className, halo = false }: { className: string; halo?: boolean }) {
+/** The far line: a bare stroke, drawn behind the ship. */
+function WaveLine({ className }: { className: string }) {
   return (
     <svg className={className} viewBox="0 0 240 20" preserveAspectRatio="none" aria-hidden="true">
-      {/* The near wave carries a wider stroke of the page background beneath
-          the gold one. Invisible against the page, but where the wave passes
-          over the hull it knocks a dark band through it — which is the only
-          thing that actually reads as a waterline. Gold-on-gold, the crossing
-          was invisible and the ship looked parked on top of the line. */}
-      {halo && (
-        <path d={WAVE_PATH} fill="none" stroke="var(--color-bg)" strokeWidth="8" />
-      )}
+      <path d={WAVE_PATH} fill="none" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
+/**
+ * The near line, and the water itself. Everything below the wave is filled in
+ * the page background, so the hull is occluded exactly the way water occludes
+ * it — along the wave's own curve, and wherever the wave happens to be at that
+ * moment. Drawn after the ship, so the ship rises and sinks through it.
+ *
+ * This replaced a straight CSS clip plus a background-colored stroke faking
+ * the waterline. That worked at hero size and fell apart at the smaller mobile
+ * size, where a fixed-width stroke ate most of a much shorter hull and left
+ * the keel stranded below it as a loose sliver.
+ */
+function WaterLine({ className }: { className: string }) {
+  return (
+    <svg className={className} viewBox="0 0 240 40" preserveAspectRatio="none" aria-hidden="true">
+      <path className="hero-water-fill" d={`${WAVE_PATH}L240 40L0 40Z`} stroke="none" />
       <path d={WAVE_PATH} fill="none" stroke="currentColor" strokeWidth="1.5" />
     </svg>
   );
@@ -55,19 +68,16 @@ export function SiteHero() {
         </h1>
       </div>
 
-      {/* Draw order is the waterline: the near wave paints over the hull it
-          crosses, which is what puts the ship *in* the water rather than on
-          top of a line. */}
+      {/* Draw order is the waterline: far line, then the ship, then the water,
+          which paints over everything below its own curve. */}
       <div className="hero-horizon" aria-hidden="true">
         <WaveLine className="hero-wave hero-wave-back" />
-        <div className="hero-ship-well">
-          <div className="hero-ship">
-            <div className="hero-ship-rock">
-              <ShipMark className="h-full w-full" />
-            </div>
+        <div className="hero-ship">
+          <div className="hero-ship-rock">
+            <ShipMark className="h-full w-full" />
           </div>
         </div>
-        <WaveLine className="hero-wave hero-wave-front" halo />
+        <WaterLine className="hero-wave hero-wave-front" />
       </div>
     </section>
   );

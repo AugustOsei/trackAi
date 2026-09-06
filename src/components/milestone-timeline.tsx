@@ -272,7 +272,7 @@ export function MilestoneTimeline({ models }: { models: TimelineModel[] }) {
   if (!models.length) {
     return (
       <div className="mt-10 flex flex-col items-center gap-3 py-10 text-center">
-        <ShipMark className="h-10 w-10 text-ink-faint/60" />
+        <ShipMark className="h-9 w-12 text-ink-faint/60" />
         <p className="text-sm text-ink-muted">Nothing matches those filters yet.</p>
       </div>
     );

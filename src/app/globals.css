@@ -336,7 +336,6 @@ body {
   position: absolute;
   left: 0;
   width: 200%;
-  height: 1.25rem;
 }
 
 /* The wave is stretched to an arbitrary width by preserveAspectRatio="none",
@@ -347,52 +346,46 @@ body {
 }
 
 /* The far line: dimmer, and only just above the near one. It has to stay at
-   or below the ship's deck so the solid hull occludes it — any higher and the
-   far horizon runs visibly through the sails, which reads as a mistake rather
+   or below the ship's deck so the hull occludes it — any higher and the far
+   horizon runs visibly through the sails, which reads as a mistake rather
    than as distance. So the parallax here is carried entirely by the two lines
-   drifting at different speeds, not by spacing them apart. There is no third
-   layer and no fill. */
+   drifting at different speeds, not by spacing them apart. */
 .hero-wave-back {
-  bottom: 1.3rem;
+  bottom: 1.75rem;
+  height: 1.25rem;
   opacity: 0.28;
 }
 
-/* The near wave's fade sits on its gold stroke, not on the element. The
-   element also carries the background-colored halo stroke that cuts the
-   waterline through the hull, and that one has to stay fully opaque or the
-   hull shows straight through it. */
+/* The near line runs the full depth of the horizon, because it carries the
+   water as well as the line: everything under its curve is filled with the
+   page background, which is what occludes the hull. Its fade therefore sits
+   on the gold stroke alone — dim the element and the water stops hiding
+   anything. */
 .hero-wave-front {
-  bottom: 0.9rem;
+  bottom: 0;
+  height: 2.5rem;
+}
+
+.hero-water-fill {
+  fill: var(--color-bg);
 }
 
 .hero-wave-front > path:last-of-type {
   stroke-opacity: 0.55;
 }
 
-/* The waterline. This box is static and its bottom edge sits exactly on the
-   near wave's centre line, so everything below the water is clipped away —
-   without it the hull's keel hangs beneath the wave as a detached gold
-   crescent. The bob happens *inside* this box, which means the ship really
-   does rise and sink through a fixed water level rather than carrying the
-   water up and down with it. The wave's background-colored halo is what hides
-   the fact that this cut is a straight line and the wave is not. */
-.hero-ship-well {
-  position: absolute;
-  right: 16%;
-  bottom: 1.525rem;
-  width: 4rem;
-  height: 3.75rem;
-  overflow: hidden;
-}
-
-/* Pulled down by half a hull so the hull's midpoint lands on the well's
-   bottom edge — i.e. the ship floats at its waterline, not on top of it. */
+/* Positioned so the mark's own painted waterline (y=150 of its 180-tall
+   viewBox, a sixth of its height up from the bottom of the drawing) lands on
+   the water's resting level. The bob then carries it a couple of pixels above
+   and below that, and the water fill hides whatever goes under — so the ship
+   genuinely rises and sinks through the surface rather than sliding around
+   on top of a line. */
 .hero-ship {
   position: absolute;
-  left: 0;
-  bottom: -0.73rem;
-  width: 4rem;
-  height: 4rem;
+  right: 14%;
+  bottom: 1rem;
+  width: 7rem;
+  height: 5.25rem;
 }
 
 /* Bob and rock are split across two elements so neither transform clobbers
@@ -402,7 +395,7 @@ body {
 .hero-ship-rock {
   height: 100%;
   width: 100%;
-  transform-origin: 50% 82%;
+  transform-origin: 50% 83%;
 }
 
 @keyframes hero-wave-drift {
@@ -459,16 +452,12 @@ body {
 
 @media (min-width: 640px) {
   .hero-horizon {
-    height: 7.5rem;
-  }
-  .hero-ship-well {
-    width: 5rem;
-    height: 4.5rem;
+    height: 8rem;
   }
   .hero-ship {
-    width: 5rem;
-    height: 5rem;
-    bottom: -0.91rem;
+    width: 9rem;
+    height: 6.75rem;
+    bottom: 0.75rem;
   }
 }
 
