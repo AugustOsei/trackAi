@@ -1,8 +1,9 @@
 import { z } from "zod";
-import { desc, sql } from "drizzle-orm";
+import { desc, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { models } from "@/db/schema";
+import { models, suppressedSlugs } from "@/db/schema";
 import { isAuthorizedIngest, unauthorized } from "@/lib/ingest-auth";
+import { canonicalModelIdentity } from "@/lib/model-normalization";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,10 @@ const modelSchema = z.object({
     .max(200)
     .regex(/^[a-z0-9-]+$/, "slug must be lowercase alphanumeric with hyphens"),
   provider: z.string().trim().min(1).max(120),
-  status: z.enum(["rumored", "announced", "released"]).default("released"),
+  // Optional because the claim-enrichment workflow updates an existing row
+  // without making a status decision. A caller that explicitly supplies a
+  // status is authoritative and may promote a rumor to released.
+  status: z.enum(["rumored", "announced", "released"]).optional(),
   predictedDate: z.string().date().nullish(),
   actualDate: z.string().date().nullish(),
   providerBlurb: z.string().trim().max(2000).nullish(),
@@ -93,11 +97,15 @@ export async function POST(request: Request) {
   }
 
   const now = new Date();
-  const rows = parsed.data.models.map((m) => ({
+  const normalized = parsed.data.models.map((m) => ({
+    ...m,
+    ...canonicalModelIdentity(m),
+  }));
+  const rows = normalized.map((m) => ({
     name: m.name,
     slug: m.slug,
     provider: m.provider,
-    status: m.status,
+    status: m.status ?? ("announced" as const),
     predictedDate: m.predictedDate ?? null,
     actualDate: m.actualDate ?? null,
     providerBlurb: m.providerBlurb ?? null,
@@ -109,34 +117,80 @@ export async function POST(request: Request) {
   }));
 
   try {
-    const result = await db
-      .insert(models)
-      .values(rows)
-      .onConflictDoUpdate({
-        target: models.slug,
-        set: {
-          name: sql`excluded.name`,
-          provider: sql`excluded.provider`,
-          // `status` is deliberately absent from this SET clause. The claim
-          // workflow's payload never includes one — filtered out by Zod's
-          // `.default("released")` — so this used to fire on every existing
-          // model that workflow touched, silently flipping a merely
-          // *announced* model to *released* the moment its announcement
-          // page was found, whether or not it had actually shipped. Status
-          // transitions need their own deliberate signal; enriching a claim
-          // isn't one.
-          predictedDate: sql`excluded.predicted_date`,
-          actualDate: sql`excluded.actual_date`,
-          // Keep an existing human-written blurb if the sync sends nothing.
-          providerBlurb: sql`coalesce(excluded.provider_blurb, ${models.providerBlurb})`,
-          announcementUrl: sql`coalesce(excluded.announcement_url, ${models.announcementUrl})`,
-          claimedBenchmarks: sql`excluded.claimed_benchmarks`,
-          pricePerMtok: sql`excluded.price_per_mtok`,
-          summaryIsAutoDrafted: sql`excluded.summary_is_auto_drafted`,
-          claimUpdatedAt: sql`excluded.claim_updated_at`,
-        },
-      })
-      .returning({ id: models.id, slug: models.slug });
+    const explicitSlugs = new Set(
+      normalized.filter((m) => m.status !== undefined).map((m) => m.slug),
+    );
+    const explicitRows = rows.filter((m) => explicitSlugs.has(m.slug));
+    const enrichmentRows = rows.filter((m) => !explicitSlugs.has(m.slug));
+
+    const result = await db.transaction(async (tx) => {
+      const returned: { id: number; slug: string }[] = [];
+
+      if (explicitRows.length) {
+        returned.push(
+          ...(await tx
+            .insert(models)
+            .values(explicitRows)
+            .onConflictDoUpdate({
+              target: models.slug,
+              set: {
+                name: sql`excluded.name`,
+                provider: sql`excluded.provider`,
+                status: sql`excluded.status`,
+                predictedDate: sql`coalesce(excluded.predicted_date, ${models.predictedDate})`,
+                actualDate: sql`coalesce(excluded.actual_date, ${models.actualDate})`,
+                providerBlurb: sql`coalesce(excluded.provider_blurb, ${models.providerBlurb})`,
+                announcementUrl: sql`coalesce(excluded.announcement_url, ${models.announcementUrl})`,
+                claimedBenchmarks: sql`CASE WHEN jsonb_array_length(excluded.claimed_benchmarks) > 0 THEN excluded.claimed_benchmarks ELSE ${models.claimedBenchmarks} END`,
+                pricePerMtok: sql`coalesce(excluded.price_per_mtok, ${models.pricePerMtok})`,
+                summaryIsAutoDrafted: sql`excluded.summary_is_auto_drafted`,
+                rumorSummary: sql`CASE WHEN excluded.status = 'released' THEN NULL ELSE ${models.rumorSummary} END`,
+                rumorSourceUrl: sql`CASE WHEN excluded.status = 'released' THEN NULL ELSE ${models.rumorSourceUrl} END`,
+                rumorConfidence: sql`CASE WHEN excluded.status = 'released' THEN NULL ELSE ${models.rumorConfidence} END`,
+                rumorEvidenceType: sql`CASE WHEN excluded.status = 'released' THEN NULL ELSE ${models.rumorEvidenceType} END`,
+                claimUpdatedAt: sql`excluded.claim_updated_at`,
+              },
+            })
+            .returning({ id: models.id, slug: models.slug })),
+        );
+
+        // A verified official release overrides an old rumor tombstone. This
+        // is the recovery path for a legitimate model that was suppressed
+        // when it first appeared as noisy or repeatedly shifting chatter.
+        const confirmedSlugs = normalized
+          .filter((m) => m.status === "released")
+          .map((m) => m.slug);
+        if (confirmedSlugs.length) {
+          await tx
+            .delete(suppressedSlugs)
+            .where(inArray(suppressedSlugs.slug, confirmedSlugs));
+        }
+      }
+
+      if (enrichmentRows.length) {
+        returned.push(
+          ...(await tx
+            .insert(models)
+            .values(enrichmentRows)
+            .onConflictDoUpdate({
+              target: models.slug,
+              set: {
+                name: sql`excluded.name`,
+                provider: sql`excluded.provider`,
+                providerBlurb: sql`coalesce(excluded.provider_blurb, ${models.providerBlurb})`,
+                announcementUrl: sql`coalesce(excluded.announcement_url, ${models.announcementUrl})`,
+                claimedBenchmarks: sql`CASE WHEN jsonb_array_length(excluded.claimed_benchmarks) > 0 THEN excluded.claimed_benchmarks ELSE ${models.claimedBenchmarks} END`,
+                pricePerMtok: sql`coalesce(excluded.price_per_mtok, ${models.pricePerMtok})`,
+                summaryIsAutoDrafted: sql`excluded.summary_is_auto_drafted`,
+                claimUpdatedAt: sql`excluded.claim_updated_at`,
+              },
+            })
+            .returning({ id: models.id, slug: models.slug })),
+        );
+      }
+
+      return returned;
+    });
 
     return Response.json({ ok: true, upserted: result.length });
   } catch (err) {

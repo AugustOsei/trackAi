@@ -57,6 +57,20 @@
       "when": 1787853248462,
       "tag": "0007_multi_model_reports",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1788464266535,
+      "tag": "0008_add_suppressed_slugs",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790011754290,
+      "tag": "0009_daffy_shinko_yamashiro",
+      "breakpoints": true
     }
   ]
 }

@@ -474,6 +474,162 @@ export const SEED: NewModel[] = [
       "Newest Mythos-class model, with gains in cybersecurity and biology. The same underlying model as Fable 5.1 under a different safeguard layer; access remains limited to a small set of vetted organizations through Project Glasswing.",
     ...price("10.000"),
   },
+  // The grid's first resolved prediction: carried as rumored GPT-6 against a
+  // predicted 2026-11-15, and it landed on 2026-09-03 as GPT-6 Astra — ten
+  // weeks early. `predictedDate` is kept alongside `actualDate` deliberately;
+  // a prediction that came true is the record this grid exists to hold, and
+  // dropping it would leave the row looking like it was never forecast.
+  // Released on the day rollout began, which is what "released" has meant for
+  // every staged rollout in this seed, even though general availability on the
+  // paid tiers and the API trails it by about a week.
+  {
+    name: "GPT-6 Astra",
+    slug: "gpt-6",
+    provider: "OpenAI",
+    announcementUrl: "https://openai.com/index/path-to-astra/",
+    status: "released",
+    predictedDate: "2026-11-15",
+    actualDate: "2026-09-03",
+    providerBlurb:
+      "First model in the GPT-6 generation, which OpenAI describes as a new frontier on computer and browser use and its best model for software engineering to date, citing bug detection, terminal tasks and codebase analysis. It is also the first model OpenAI has designated as reaching the Critical cybersecurity threshold under its Preparedness Framework, and it ships under added safeguards, with the widest access limited at launch to vetted testers in the Daybreak program.",
+    ...price("10.000"),
+  },
+
+  // ── Confirmed September releases missed by the original seed ───────────
+  {
+    name: "Gemini 3.8 Flash",
+    slug: "gemini-3-8-flash",
+    provider: "Google DeepMind",
+    announcementUrl:
+      "https://blog.google/innovation-and-ai/models-and-research/gemini-models/3-8-flash-and-3-8-flash-cyber/",
+    status: "released",
+    actualDate: "2026-09-02",
+    providerBlurb:
+      "Google's workhorse Gemini 3.8 model for coding, agentic tasks and multi-step reasoning, launched at the introductory price of $0.75 input and $3.75 output per million tokens.",
+    ...price("3.750"),
+  },
+  {
+    name: "Gemini 3.8 Flash Cyber",
+    slug: "gemini-3-8-flash-cyber",
+    provider: "Google DeepMind",
+    announcementUrl:
+      "https://blog.google/innovation-and-ai/models-and-research/gemini-models/3-8-flash-and-3-8-flash-cyber/",
+    status: "released",
+    actualDate: "2026-09-02",
+    providerBlurb:
+      "Cybersecurity-focused Gemini 3.8 variant for vulnerability discovery and automated patching, available to trusted defenders through Google's Fairwind Program.",
+  },
+  {
+    name: "Muse Spark 1.3",
+    slug: "muse-spark-1-3",
+    provider: "Meta",
+    announcementUrl: "https://ai.meta.com/events/",
+    status: "released",
+    actualDate: "2026-09-02",
+    providerBlurb:
+      "Meta's updated Muse Spark model, with improved coding, agentic workflows and native multimodal perception.",
+  },
+  {
+    name: "GPT-Image-2.5 Flare",
+    slug: "gpt-image-2-5-flare",
+    provider: "OpenAI",
+    announcementUrl: "https://openai.com/index/introducing-chatgpt-images-2-5/",
+    status: "released",
+    actualDate: "2026-09-08",
+    providerBlurb:
+      "The faster GPT-Image-2.5 API tier, with improvements to image quality, editing and generation speed.",
+  },
+  {
+    name: "GPT-Image-2.5 Sunburst",
+    slug: "gpt-image-2-5-sunburst",
+    provider: "OpenAI",
+    announcementUrl: "https://openai.com/index/introducing-chatgpt-images-2-5/",
+    status: "released",
+    actualDate: "2026-09-08",
+    providerBlurb:
+      "The higher-precision GPT-Image-2.5 API tier for detailed creative work, trading generation time for control and fidelity.",
+  },
+  {
+    name: "DeepSeek V4.1 Flash",
+    slug: "deepseek-v4-1-flash",
+    provider: "DeepSeek",
+    announcementUrl: "https://www.deepseek.com/en/news/deepseek-v4-1-flash/",
+    status: "released",
+    actualDate: "2026-09-10",
+    providerBlurb:
+      "DeepSeek's faster V4.1 architecture, replacing V4 Pro traffic in the hosted API while adding native multimodal support.",
+  },
+  {
+    name: "GPT-Live-1",
+    slug: "gpt-live-1",
+    provider: "OpenAI",
+    announcementUrl: "https://openai.com/index/introducing-gpt-live-1-in-the-api/",
+    status: "released",
+    actualDate: "2026-09-10",
+    providerBlurb:
+      "Full-duplex voice model for the API that handles simultaneous listening and speaking while delegating deeper reasoning and tool calls to a backend model.",
+  },
+  {
+    name: "Kimi K2.8 Preview",
+    slug: "kimi-k2-8-preview",
+    provider: "Moonshot AI",
+    status: "released",
+    actualDate: "2026-09-11",
+    providerBlurb:
+      "Kimi Code preview with more efficient reasoning, adjustable thinking effort and a 1M-token context window, served behind the existing kimi-for-coding model ID.",
+  },
+  {
+    name: "Fugu Max",
+    slug: "fugu-max",
+    provider: "Sakana AI",
+    announcementUrl: "https://sakana.ai/fugu-max-release/",
+    status: "released",
+    actualDate: "2026-09-11",
+    providerBlurb:
+      "Sakana's cost-oriented model-orchestration system, dynamically routing tasks across a larger pool of open and specialized models.",
+  },
+  {
+    name: "Fugu Ultra v2",
+    slug: "fugu-ultra-v2",
+    provider: "Sakana AI",
+    announcementUrl: "https://sakana.ai/fugu-max-release/",
+    status: "released",
+    actualDate: "2026-09-11",
+    providerBlurb:
+      "Second-generation Fugu Ultra orchestration system, aimed at raising peak capability without depending on a single frontier model.",
+  },
+  {
+    name: "Gemini 3.8 Live",
+    slug: "gemini-3-8-live",
+    provider: "Google DeepMind",
+    announcementUrl:
+      "https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-3-8-live-gemini-3-8-live-extended-thinking/",
+    status: "released",
+    actualDate: "2026-09-15",
+    providerBlurb:
+      "Google's cost-efficient real-time dialogue model, combining fluid voice interaction, visual grounding and asynchronous function calling.",
+  },
+  {
+    name: "Gemini 3.8 Live Extended Thinking",
+    slug: "gemini-3-8-live-extended-thinking",
+    provider: "Google DeepMind",
+    announcementUrl:
+      "https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-3-8-live-gemini-3-8-live-extended-thinking/",
+    status: "released",
+    actualDate: "2026-09-15",
+    providerBlurb:
+      "Higher-reasoning Gemini Live tier that can work through multi-step tasks while maintaining an uninterrupted spoken conversation.",
+  },
+  {
+    name: "Qwen3.8 Omni Flash",
+    slug: "qwen3-8-omni-flash",
+    provider: "Alibaba",
+    announcementUrl: "https://docs.qwencloud.com/changelog/models",
+    status: "released",
+    actualDate: "2026-09-18",
+    providerBlurb:
+      "Native omni-modal model accepting text, image, audio and video with up to 1M tokens of context, built on the Qwen3.8-Flash-Next architecture.",
+  },
 
   // ── Unconfirmed: announced or rumored, not sourced claims ────────────────
   {
@@ -481,7 +637,6 @@ export const SEED: NewModel[] = [
     slug: "qwen-4",
     provider: "Alibaba",
     status: "announced",
-    predictedDate: "2026-09-30",
     providerBlurb: "Next Qwen generation. Timing unconfirmed.",
   },
   {
@@ -489,23 +644,14 @@ export const SEED: NewModel[] = [
     slug: "kimi-k3-1",
     provider: "Moonshot AI",
     status: "rumored",
-    predictedDate: "2026-10-15",
     providerBlurb: "Point update to Kimi K3. Rumored only.",
-  },
-  {
-    name: "GPT-6",
-    slug: "gpt-6",
-    provider: "OpenAI",
-    status: "rumored",
-    predictedDate: "2026-11-15",
-    providerBlurb: "Next major GPT generation. Rumored only, no confirmed date.",
   },
   {
     name: "Claude Opus 6",
     slug: "claude-opus-6",
     provider: "Anthropic",
     status: "rumored",
-    predictedDate: "2026-12-01",
-    providerBlurb: "Next Opus generation. Rumored only.",
+    providerBlurb:
+      "Unconfirmed next-generation Opus placeholder. Current chatter more often calls the nearer refresh Opus 5.5, and Anthropic has published no date.",
   },
 ];

@@ -79,10 +79,12 @@ variables **by name only** — never values. Returns 503 when unhealthy.
 
 ### `POST /api/ingest/models` — CLAIM layer
 
-Bearer auth (`INGEST_API_TOKEN`). Upserts on `slug`, so the sync is
-idempotent. `claimedBenchmarks` is a free-form list rather than fixed columns,
-because every lab quotes a different set of tests. A human-written
+Bearer auth (`INGEST_API_TOKEN`). Upserts on canonicalized `slug`, so the sync
+is idempotent. `claimedBenchmarks` is a free-form list rather than fixed
+columns, because every lab quotes a different set of tests. A human-written
 `providerBlurb` or `announcementUrl` is preserved when the sync sends none.
+An explicitly supplied `status` is authoritative, so official discovery can
+promote a rumor to released; claim enrichment that omits it cannot.
 
 ```bash
 curl -X POST "$BASE/api/ingest/models" \
@@ -131,9 +133,14 @@ curl -X POST "$BASE/api/ingest/reports" \
 Importable JSON lives in `n8n/`. Both read their config from the n8n instance's
 environment (`TRACKAI_BASE_URL`, `TRACKAI_INGEST_TOKEN`, `ANTHROPIC_API_KEY`).
 
-**`01-provider-claim-sync.json`** — daily. For each model with no recorded
-announcement, Claude uses web search to find the provider's *own* post, then
-records a summary, the figures that post quotes, and the link.
+**`11-official-release-discovery.json`** — daily at 05:15. Searches a strict
+allowlist of provider-owned sites for newly released models from the previous
+21 days. Every result needs an exact release date and official URL. This can
+create models the tracker has never seen and promote matching rumor rows.
+
+**`01-provider-claim-sync.json`** — daily. For each known model with no
+recorded announcement, Claude uses web search to find the provider's *own*
+post, then records a summary, the figures that post quotes, and the link.
 
 This layer **auto-publishes**, so the prompt is deliberately constrained: use
 only the provider's own page (never a news article or aggregator), quote only
@@ -211,6 +218,15 @@ call rather than by the model's judgement.
 Both carry an explicit `America/Denver` timezone. Without it a schedule runs in
 whatever timezone the n8n host happens to have, which is UTC by default — the
 trigger still fires daily, just not at the hour it appears to say.
+
+### Rumor evidence
+
+Rumors carry a confidence (`low`, `medium`, or `high`) and an evidence type
+(`provider_statement`, `credible_reporting`, `leak`, or
+`community_speculation`). The latest source drives the timeline card, while a
+bounded source history preserves older claims instead of silently rewriting a
+prediction. Exact provider and model aliases are normalized during ingestion
+so known name variants do not create duplicate filters or model rows.
 
 ## Approving reports
 

@@ -30,6 +30,8 @@ For each model the article NAMES BY NAME (not "OpenAI's next model" — an actua
 - Only include models the article describes as NOT YET RELEASED — upcoming, rumored, in testing, expected. Skip anything the article treats as already shipped; that belongs to the confirmed CLAIM layer, sourced from the provider directly, not to chatter.
 - A predicted date only if the article states or clearly implies one (e.g. "expected next month" relative to the article's own date, printed below). Never invent a date the text doesn't support — omit it rather than guess.
 - A one-sentence summary of what's being said, in your own words. Never quote the article.
+- Rate confidence as low, medium, or high. High requires a dated statement from the provider or its leadership; credible reporting without a provider statement is medium at most; anonymous leaks and community guesses are low.
+- Classify the evidence as provider_statement, credible_reporting, leak, or community_speculation.
 - Skip pure speculation with no named model ("OpenAI is definitely working on something big").
 - If the article doesn't identify even a suspected provider (a genuine "stealth model, nobody knows who's behind it" story), skip the entry entirely. Never write a placeholder like "Unknown" or "<UNKNOWN>" into the provider field — this site organizes and filters everything by provider, and a placeholder there is worse than not listing the model at all.
 
@@ -59,8 +61,26 @@ export const RUMOR_TOOL = {
               type: "string",
               description: "One sentence, paraphrased, 10-300 chars.",
             },
+            confidence: { type: "string", enum: ["low", "medium", "high"] },
+            evidenceType: {
+              type: "string",
+              enum: [
+                "provider_statement",
+                "credible_reporting",
+                "leak",
+                "community_speculation",
+              ],
+            },
           },
-          required: ["slug", "name", "provider", "predictedDate", "summary"],
+          required: [
+            "slug",
+            "name",
+            "provider",
+            "predictedDate",
+            "summary",
+            "confidence",
+            "evidenceType",
+          ],
           additionalProperties: false,
         },
       },

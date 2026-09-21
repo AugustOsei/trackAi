@@ -9,9 +9,9 @@
  * not be pinned to a primary source and are kept at their best-known date;
  * the claim workflow replaces all of this once it runs.
  *
- * Scope is language / reasoning models only. Image and video generators
- * (Seedance, Muse Image, Muse Video, Grok Imagine, Qwen Image, Gemini Omni)
- * are deliberately out, even when the same lab also ships an LLM.
+ * Scope includes individually versioned foundation models that developers can
+ * select or build against, including text, image, voice and omni-modal models.
+ * Product-only feature updates without a distinct model identity stay out.
  *
  * The CLAIM layer is strictly what each provider published about its own
  * model. Only Claude Opus 5 carries real, sourced figures here (taken from

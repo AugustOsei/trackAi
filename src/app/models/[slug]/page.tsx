@@ -31,6 +31,7 @@ export default async function ModelDetailPage({
   if (!model) notFound();
 
   const claims = model.claimedBenchmarks ?? [];
+  const rumorSources = model.rumorSources ?? [];
 
   const grouped = new Map<string, typeof model.reports>();
   for (const report of model.reports) {
@@ -90,6 +91,14 @@ export default async function ModelDetailPage({
               word. Refreshed daily as new information appears, and replaced
               entirely the moment a real announcement is found.
             </p>
+            {model.rumorConfidence && (
+              <p className="font-data mt-2 text-xs uppercase tracking-wider text-ink-muted">
+                {model.rumorConfidence} confidence
+                {model.rumorEvidenceType
+                  ? ` · ${model.rumorEvidenceType.replaceAll("_", " ")}`
+                  : ""}
+              </p>
+            )}
           </>
         ) : (
           <p className="mt-4 text-sm text-ink-faint">
@@ -151,6 +160,37 @@ export default async function ModelDetailPage({
             </span>
           )}
         </div>
+        {!model.announcementUrl && rumorSources.length > 1 && (
+          <details className="mt-4 border-t border-hairline pt-4">
+            <summary className="font-data cursor-pointer text-xs font-semibold text-ink-muted">
+              Source history ({rumorSources.length})
+            </summary>
+            <ul className="mt-3 space-y-2">
+              {rumorSources
+                .slice()
+                .reverse()
+                .slice(0, 6)
+                .map((source) => (
+                  <li key={`${source.url}-${source.observedAt}`} className="font-data text-xs">
+                    <a
+                      href={source.url}
+                      target="_blank"
+                      rel="noopener noreferrer nofollow"
+                      className="text-gold hover:underline"
+                    >
+                      {source.evidenceType.replaceAll("_", " ")}
+                    </a>
+                    <span className="text-ink-faint">
+                      {` · ${source.confidence} confidence`}
+                      {source.predictedDate
+                        ? ` · predicted ${formatDate(source.predictedDate)}`
+                        : ""}
+                    </span>
+                  </li>
+                ))}
+            </ul>
+          </details>
+        )}
       </section>
 
       <Perforation className="my-2" />

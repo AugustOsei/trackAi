@@ -6,7 +6,14 @@ import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { models, reports, reportModels, subscribers, MAX_MODELS_PER_REPORT } from "@/db/schema";
+import {
+  models,
+  reports,
+  reportModels,
+  subscribers,
+  suppressedSlugs,
+  MAX_MODELS_PER_REPORT,
+} from "@/db/schema";
 import { verifyPassword } from "@/lib/password";
 import {
   checkAndRecordSubmission,
@@ -320,11 +327,35 @@ export async function deleteReport(formData: FormData): Promise<void> {
  * report left with no models still exists but stops showing on any grid.
  * Used to clear out junk rumor-discovery rows. /admin only.
  */
+/**
+ * Delete a model, and remember that it was deleted.
+ *
+ * The tombstone is the point: the rumor feed re-inserts any slug it doesn't
+ * find, so a delete on its own lasts until the next n8n run. The slug is read
+ * from the row rather than the form so a tampered field can't suppress some
+ * other model, and it is written in the same transaction as the delete so the
+ * two can't come apart — a delete that committed without its tombstone would
+ * be silently undone hours later, which is the exact failure this fixes.
+ */
 export async function deleteModel(formData: FormData): Promise<void> {
   const modelId = Number(formData.get("modelId"));
   if (!Number.isInteger(modelId) || modelId <= 0) return;
 
-  await db.delete(models).where(eq(models.id, modelId));
+  const reason = String(formData.get("reason") ?? "").trim() || null;
+
+  await db.transaction(async (tx) => {
+    const [row] = await tx
+      .delete(models)
+      .where(eq(models.id, modelId))
+      .returning({ slug: models.slug });
+
+    if (!row) return;
+
+    await tx
+      .insert(suppressedSlugs)
+      .values({ slug: row.slug, reason })
+      .onConflictDoNothing({ target: suppressedSlugs.slug });
+  });
 
   revalidatePath("/admin");
   revalidatePath("/reports");

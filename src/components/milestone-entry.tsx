@@ -143,7 +143,19 @@ export function MilestoneEntry({
                   : `expected ${formatDate(date)}`}
             </p>
 
-            {model.providerBlurb && <p className="text-sm text-ink">{model.providerBlurb}</p>}
+            {(model.providerBlurb || model.rumorSummary) && (
+              <p className={`text-sm ${model.providerBlurb ? "text-ink" : "text-ink-muted"}`}>
+                {model.providerBlurb ?? model.rumorSummary}
+              </p>
+            )}
+            {!model.providerBlurb && model.rumorConfidence && (
+              <p className="font-data text-[11px] uppercase tracking-wider text-ink-faint">
+                {model.rumorConfidence} confidence
+                {model.rumorEvidenceType
+                  ? ` · ${model.rumorEvidenceType.replaceAll("_", " ")}`
+                  : ""}
+              </p>
+            )}
 
             {/* Show whichever figures this lab actually published — the set
                 differs per provider, so there's no fixed row to render. */}

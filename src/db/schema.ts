@@ -102,6 +102,24 @@ export const models = pgTable(
      */
     rumorSummary: text("rumor_summary"),
     rumorSourceUrl: text("rumor_source_url"),
+    rumorConfidence: varchar("rumor_confidence", { length: 12 }),
+    rumorEvidenceType: varchar("rumor_evidence_type", { length: 40 }),
+    rumorSources: jsonb("rumor_sources")
+      .$type<
+        {
+          url: string;
+          summary: string;
+          observedAt: string;
+          predictedDate: string | null;
+          confidence: "low" | "medium" | "high";
+          evidenceType:
+            | "provider_statement"
+            | "credible_reporting"
+            | "leak"
+            | "community_speculation";
+        }[]
+      >()
+      .default([]),
 
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     /**
@@ -201,6 +219,27 @@ export const subscribers = pgTable(
   (table) => [index("subscribers_status_idx").on(table.status)],
 );
 
+/**
+ * Slugs the rumor feed must never create again.
+ *
+ * Deleting a rumor row is not enough by itself. `/api/ingest/rumors` treats
+ * an unrecognised slug as a genuinely new rumor and inserts it, so a row
+ * removed today comes back on the next run with a fresh predicted date.
+ * Confirmed provider releases bypass and remove their tombstone, so an early
+ * noisy rumor cannot permanently block a model that later ships for real.
+ *
+ * Same tombstone shape as an `unsubscribed` subscriber, and for the same
+ * reason: the record of the decision has to outlive the row it removed, or
+ * the automation silently undoes it. Keyed by slug rather than model id
+ * because the point is to survive the row's deletion.
+ */
+export const suppressedSlugs = pgTable("suppressed_slugs", {
+  slug: varchar("slug", { length: 200 }).primaryKey(),
+  /** Why this was suppressed — shown in /admin so it can be undone knowingly. */
+  reason: text("reason"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const modelsRelations = relations(models, ({ many }) => ({
   reportModels: many(reportModels),
 }));
@@ -227,3 +266,4 @@ export type NewReport = typeof reports.$inferInsert;
 export type ReportModel = typeof reportModels.$inferSelect;
 export type Subscriber = typeof subscribers.$inferSelect;
 export type NewSubscriber = typeof subscribers.$inferInsert;
+export type SuppressedSlug = typeof suppressedSlugs.$inferSelect;
