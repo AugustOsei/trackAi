@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { MilestoneEntry } from "@/components/milestone-entry";
 import { ShipMark } from "@/components/ship-mark";
 import { providerStyle } from "@/lib/providers";
@@ -40,6 +40,7 @@ export function MilestoneTimeline({ models }: { models: TimelineModel[] }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const todayRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
   const [rolling, setRolling] = useState(false);
   // First-visit nudge toward the Roll button: a one-time "click to roll
@@ -184,7 +185,7 @@ export function MilestoneTimeline({ models }: { models: TimelineModel[] }) {
   // share one implementation — mount always starts from 0, the button
   // rewinds to 0 first so a replay always reads the same "past to present"
   // motion rather than animating from wherever the reader had scrolled to.
-  const roll = useCallback((startTop: number) => {
+  const roll = useCallback((startTop: number, animate = true) => {
     const el = scrollRef.current;
     const marker = todayRef.current;
     const content = contentRef.current;
@@ -196,7 +197,7 @@ export function MilestoneTimeline({ models }: { models: TimelineModel[] }) {
 
     el.scrollTop = startTop;
 
-    if (reduced) {
+    if (reduced || !animate) {
       el.scrollTop = target;
       syncEdges();
       return;
@@ -256,9 +257,14 @@ export function MilestoneTimeline({ models }: { models: TimelineModel[] }) {
   }, [syncEdges]);
 
   // Plays once on every arrival at the homepage — not gated behind scroll or
-  // interaction, same as the site's other entrance choreography.
-  useEffect(() => {
-    roll(0);
+  // interaction, same as the site's other entrance choreography. On phones,
+  // position at today immediately: the timeline is usually below the fold,
+  // and relying on an off-screen animation leaves mobile browsers vulnerable
+  // to rAF throttling. The Roll button still uses the full animation later.
+  useLayoutEffect(() => {
+    const mobile = window.matchMedia("(max-width: 639px)").matches;
+    roll(0, !mobile);
+    if (viewportRef.current) viewportRef.current.style.opacity = "1";
     return () => {
       // Reset the ref, not just cancel the frame — otherwise React Strict
       // Mode's dev-only double-invoke (mount, cleanup, mount again) leaves
@@ -372,7 +378,7 @@ export function MilestoneTimeline({ models }: { models: TimelineModel[] }) {
         </div>
       </div>
 
-      <div className="relative">
+      <div ref={viewportRef} className="relative opacity-0">
         <div
           ref={scrollRef}
           onScroll={syncEdges}
