@@ -51,6 +51,10 @@ export function MilestoneTimeline({ models }: { models: TimelineModel[] }) {
   const hintShownRef = useRef(false);
   const rollFrame = useRef<number | null>(null);
   const [edge, setEdge] = useState({ top: true, bottom: false });
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [currentPeriod, setCurrentPeriod] = useState("");
+  const [scrubbing, setScrubbing] = useState(false);
+  const faderRef = useRef<HTMLDivElement>(null);
 
   // Computed once per mount, not per render — the marker shouldn't drift to
   // a new day mid-session just because something else caused a re-render.
@@ -127,11 +131,52 @@ export function MilestoneTimeline({ models }: { models: TimelineModel[] }) {
   const syncEdges = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
+    const maxScroll = Math.max(0, el.scrollHeight - el.clientHeight);
     setEdge({
       top: el.scrollTop <= 4,
       bottom: el.scrollTop + el.clientHeight >= el.scrollHeight - 4,
     });
+    setScrollProgress(maxScroll > 0 ? el.scrollTop / maxScroll : 0);
+
+    const viewportMiddle = el.scrollTop + el.clientHeight / 2;
+    let nearest: { distance: number; label: string } | null = null;
+    for (const marker of el.querySelectorAll<HTMLElement>("[data-timeline-period]")) {
+      const label = marker.dataset.timelinePeriod;
+      if (!label) continue;
+      const distance = Math.abs(marker.offsetTop - viewportMiddle);
+      if (!nearest || distance < nearest.distance) nearest = { distance, label };
+    }
+    if (nearest) setCurrentPeriod(nearest.label);
   }, []);
+
+  const scrollToProgress = useCallback((progress: number) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const clamped = Math.min(1, Math.max(0, progress));
+    el.scrollTop = (el.scrollHeight - el.clientHeight) * clamped;
+    syncEdges();
+  }, [syncEdges]);
+
+  const updateFaderFromPointer = useCallback((clientY: number) => {
+    const rail = faderRef.current;
+    if (!rail) return;
+    const bounds = rail.getBoundingClientRect();
+    scrollToProgress((clientY - bounds.top) / bounds.height);
+  }, [scrollToProgress]);
+
+  const onFaderKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (rolling) return;
+    let next = scrollProgress;
+    if (e.key === "ArrowUp") next -= 0.04;
+    else if (e.key === "ArrowDown") next += 0.04;
+    else if (e.key === "PageUp") next -= 0.18;
+    else if (e.key === "PageDown") next += 0.18;
+    else if (e.key === "Home") next = 0;
+    else if (e.key === "End") next = 1;
+    else return;
+    e.preventDefault();
+    scrollToProgress(next);
+  }, [rolling, scrollProgress, scrollToProgress]);
 
   // Slot-machine settle: starts from the oldest entry in view and spins down
   // to today, decelerating with a slight mechanical overshoot rather than
@@ -229,6 +274,16 @@ export function MilestoneTimeline({ models }: { models: TimelineModel[] }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    const scroller = scrollRef.current;
+    const content = contentRef.current;
+    if (!scroller || !content) return;
+    const observer = new ResizeObserver(syncEdges);
+    observer.observe(scroller);
+    observer.observe(content);
+    return () => observer.disconnect();
+  }, [syncEdges]);
+
   const scrollByPage = useCallback((dir: 1 | -1) => {
     const el = scrollRef.current;
     if (!el) return;
@@ -323,7 +378,7 @@ export function MilestoneTimeline({ models }: { models: TimelineModel[] }) {
           onScroll={syncEdges}
           onPointerDown={onPointerDown}
           onClickCapture={onClickCapture}
-          className={`timeline-scroll h-[62vh] max-h-[680px] min-h-[420px] overflow-y-auto overscroll-contain px-4 sm:px-6 ${
+          className={`timeline-scroll h-[62vh] max-h-[680px] min-h-[420px] touch-pan-y overflow-y-hidden overscroll-auto py-0 pr-12 pl-4 sm:overflow-y-auto sm:overscroll-contain sm:px-6 ${
             rolling ? "pointer-events-none" : dragging ? "cursor-grabbing select-none" : "cursor-grab"
           }`}
         >
@@ -415,6 +470,77 @@ export function MilestoneTimeline({ models }: { models: TimelineModel[] }) {
           </div>
         </div>
 
+        <div
+          className={`absolute inset-y-12 right-1 z-20 w-11 transition-opacity sm:hidden ${
+            rolling ? "pointer-events-none opacity-40" : ""
+          }`}
+        >
+          <div
+            ref={faderRef}
+            role="slider"
+            tabIndex={0}
+            aria-label="Browse release timeline"
+            aria-orientation="vertical"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(scrollProgress * 100)}
+            aria-valuetext={currentPeriod || `${Math.round(scrollProgress * 100)}% through timeline`}
+            aria-disabled={rolling}
+            onKeyDown={onFaderKeyDown}
+            onPointerDown={(e) => {
+              e.currentTarget.setPointerCapture(e.pointerId);
+              setScrubbing(true);
+              updateFaderFromPointer(e.clientY);
+            }}
+            onPointerMove={(e) => {
+              if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+                updateFaderFromPointer(e.clientY);
+              }
+            }}
+            onPointerUp={(e) => {
+              if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+                e.currentTarget.releasePointerCapture(e.pointerId);
+              }
+              setScrubbing(false);
+            }}
+            onPointerCancel={() => setScrubbing(false)}
+            className="absolute inset-y-5 left-0 w-full touch-none rounded-full outline-none focus-visible:ring-2 focus-visible:ring-gold/70"
+          >
+            <span className="absolute top-0 bottom-0 left-1/2 w-px -translate-x-1/2 bg-hairline" />
+            {[0, 0.25, 0.5, 0.75, 1].map((position) => (
+              <span
+                key={position}
+                className="absolute left-1/2 h-px w-3 -translate-x-1/2 bg-ink-faint/45"
+                style={{ top: `${position * 100}%` }}
+              />
+            ))}
+
+            {scrubbing && currentPeriod && (
+              <span
+                className="font-data pointer-events-none absolute right-full mr-1 -translate-y-1/2 rounded-md border border-hairline bg-bg/95 px-2 py-1 text-[10px] whitespace-nowrap text-ink shadow-lg backdrop-blur-sm"
+                style={{ top: `${scrollProgress * 100}%` }}
+              >
+                {currentPeriod}
+              </span>
+            )}
+
+            <span
+              className={`pointer-events-none absolute left-1/2 h-10 w-7 -translate-x-1/2 -translate-y-1/2 rounded-[9px] border border-white/15 shadow-[0_5px_14px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.12)] ${
+                scrubbing ? "scale-105" : "transition-[top,transform] duration-200 ease-out"
+              }`}
+              style={{
+                top: `${scrollProgress * 100}%`,
+                background: "linear-gradient(90deg, #17191d 0%, #343942 48%, #111318 100%)",
+              }}
+            >
+              <span className="absolute top-1/2 right-1.5 left-1.5 h-px bg-white/25" />
+              <span className="absolute top-1/2 right-2 left-2 h-px -translate-y-1.5 bg-black/70" />
+              <span className="absolute top-1/2 right-2 left-2 h-px translate-y-1.5 bg-black/70" />
+              <span className="absolute top-1/2 right-0 h-1.5 w-1.5 -translate-y-1/2 translate-x-1/2 rounded-full bg-gold shadow-[0_0_8px_rgba(244,196,48,0.65)]" />
+            </span>
+          </div>
+        </div>
+
         <div className="pointer-events-none absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-bg to-transparent" />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-bg to-transparent" />
       </div>
@@ -452,7 +578,10 @@ function NavButton({
 
 function MonthMarker({ date }: { date: Date }) {
   return (
-    <div className="grid py-2 sm:grid-cols-2 sm:gap-x-16">
+    <div
+      className="grid py-2 sm:grid-cols-2 sm:gap-x-16"
+      data-timeline-period={formatMonthYearShort(date)}
+    >
       <div className="relative pl-14 sm:col-start-2 sm:pl-0">
         <span className="absolute top-1/2 left-[16px] h-2 w-2 -translate-y-1/2 rounded-full bg-ink-faint/60 sm:-left-[28px]" />
         <span className="font-display text-[11px] font-black tracking-[0.18em] text-ink-faint">

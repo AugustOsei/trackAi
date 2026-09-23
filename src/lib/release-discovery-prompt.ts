@@ -2,6 +2,7 @@ import "server-only";
 
 const OFFICIAL_SOURCES = [
   "openai.com",
+  "developers.openai.com",
   "anthropic.com",
   "blog.google",
   "deepmind.google",
@@ -55,7 +56,6 @@ export const RELEASE_DISCOVERY_TOOL = {
     properties: {
       releases: {
         type: "array",
-        maxItems: 30,
         items: {
           type: "object",
           properties: {

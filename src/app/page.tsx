@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { getTimelineModels, getProviders } from "@/lib/queries";
+import { getTimelineModels, getProviders, getRecentApprovedReports } from "@/lib/queries";
 import { MilestoneTimeline } from "@/components/milestone-timeline";
 import { HowItWorks } from "@/components/how-it-works";
 import { SiteHero } from "@/components/site-hero";
+import { FieldNotesFeed } from "@/components/field-notes-feed";
 import type { Model } from "@/db/schema";
 
 export const dynamic = "force-dynamic";
@@ -21,12 +22,13 @@ export default async function TimelinePage({
   const status = typeof params.status === "string" ? params.status : "all";
   const provider = typeof params.provider === "string" ? params.provider : undefined;
 
-  const [models, providers] = await Promise.all([
+  const [models, providers, fieldNotes] = await Promise.all([
     getTimelineModels({
       status: status === "all" ? undefined : (status as Model["status"]),
       provider,
     }),
     getProviders(),
+    getRecentApprovedReports(4),
   ]);
 
   function hrefFor(nextStatus: string, nextProvider?: string) {
@@ -83,6 +85,8 @@ export default async function TimelinePage({
           </Link>
         ))}
       </div>
+
+      <FieldNotesFeed notes={fieldNotes} />
 
       <HowItWorks />
     </div>
