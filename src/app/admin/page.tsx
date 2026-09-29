@@ -8,15 +8,18 @@ import { approveReport, rejectReport, logout } from "@/lib/actions";
 import { ReviewQueue } from "@/components/review-queue";
 import { PublishedReport } from "@/components/published-report";
 import { AdminModelList } from "@/components/admin-model-list";
+import { XImportSettings } from "@/components/x-import-settings";
+import { getXIntegrationState } from "@/lib/x-bookmarks";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminQueuePage() {
-  const [pending, approved, modelOptions, allModels] = await Promise.all([
+  const [pending, approved, modelOptions, allModels, xIntegration] = await Promise.all([
     getPendingReports(),
     getRecentApprovedReports(),
     getModelOptionsForSubmit(),
     getAllModelsForAdmin(),
+    getXIntegrationState(),
   ]);
 
   return (
@@ -34,6 +37,8 @@ export default async function AdminQueuePage() {
           </button>
         </form>
       </div>
+
+      <XImportSettings state={xIntegration} />
 
       <ReviewQueue
         pending={pending}

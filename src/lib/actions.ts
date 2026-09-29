@@ -34,6 +34,11 @@ import {
 } from "@/lib/subscribe-token";
 import { publicBaseUrl } from "@/lib/env";
 import { tweetIdFromUrl } from "@/lib/sources";
+import {
+  chooseXBookmarkFolder,
+  importXBookmarkFolder,
+  listXBookmarkFolders,
+} from "@/lib/x-bookmarks";
 
 const submitSchema = z.object({
   modelIds: z
@@ -391,6 +396,21 @@ export async function approveReportViaLink(token: string, id: number) {
 
 export async function rejectReportViaLink(token: string, id: number) {
   await moderateViaLink(token, id, "rejected");
+}
+
+/** Admin-only controls for the connected X bookmark importer. */
+export async function selectXBookmarkFolder(formData: FormData) {
+  const folderId = String(formData.get("folderId") ?? "");
+  const folders = await listXBookmarkFolders();
+  const folder = folders.find((candidate) => candidate.id === folderId);
+  if (!folder) return;
+  await chooseXBookmarkFolder(folder.id, folder.name);
+  revalidatePath("/admin");
+}
+
+export async function runXBookmarkImportNow() {
+  await importXBookmarkFolder();
+  revalidateReportSurfaces();
 }
 
 const subscribeSchema = z.object({

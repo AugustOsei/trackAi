@@ -630,6 +630,120 @@ export const SEED: NewModel[] = [
     providerBlurb:
       "Native omni-modal model accepting text, image, audio and video with up to 1M tokens of context, built on the Qwen3.8-Flash-Next architecture.",
   },
+  {
+    name: "MiMo V2.6 Pro",
+    slug: "mimo-v2-6-pro",
+    provider: "Xiaomi",
+    announcementUrl: "https://huggingface.co/XiaomiMiMo/MiMo-V2.6-Pro-RL",
+    status: "released",
+    actualDate: "2026-09-21",
+    providerBlurb:
+      "The larger MiMo V2.6 checkpoint, combining text, image, video and audio input with a 1M-token context window for long-running coding and agent work.",
+  },
+  {
+    name: "MiMo V2.6 Flash",
+    slug: "mimo-v2-6-flash",
+    provider: "Xiaomi",
+    announcementUrl: "https://huggingface.co/XiaomiMiMo/MiMo-V2.6-Flash-RL",
+    status: "released",
+    actualDate: "2026-09-21",
+    providerBlurb:
+      "The efficiency-balanced MiMo V2.6 checkpoint, a 311B open-weight omni-modal model trained across coding, agentic, visual and cybersecurity tasks.",
+  },
+  {
+    name: "Grok 4.7",
+    slug: "grok-4-7",
+    provider: "xAI",
+    announcementUrl: "https://x.ai/news/grok-4-7",
+    status: "released",
+    predictedDate: "2026-09-25",
+    actualDate: "2026-09-21",
+    providerBlurb:
+      "xAI's frontier model for coding, agentic tasks and knowledge work, with stronger long-running task performance and self-verification.",
+    ...price("6.000"),
+  },
+  {
+    name: "Claude Opus 5.5",
+    slug: "claude-opus-5-5",
+    provider: "Anthropic",
+    announcementUrl: "https://www.anthropic.com/claude-opus-5-5",
+    status: "released",
+    actualDate: "2026-09-22",
+    providerBlurb:
+      "Anthropic's leading model for agentic coding, computer use and knowledge work, with lower costs and faster generation than Opus 5.",
+    ...price("20.000"),
+  },
+  {
+    name: "GPT-6 Sol",
+    slug: "gpt-6-sol",
+    provider: "OpenAI",
+    announcementUrl: "https://developers.openai.com/api/docs/changelog",
+    status: "released",
+    actualDate: "2026-09-22",
+    providerBlurb:
+      "OpenAI's reasoning model for complex coding and agentic workflows, with text and image input through the Responses and Chat Completions APIs.",
+    ...price("10.000"),
+  },
+  {
+    name: "GPT-6 Luna",
+    slug: "gpt-6-luna",
+    provider: "OpenAI",
+    announcementUrl: "https://developers.openai.com/api/docs/changelog",
+    status: "released",
+    actualDate: "2026-09-22",
+    providerBlurb:
+      "OpenAI's efficient reasoning model for focused, high-volume workloads, with text and image input through the Responses and Chat Completions APIs.",
+    ...price("0.500"),
+  },
+  {
+    name: "Ember-1",
+    slug: "ember-1",
+    provider: "Fireworks AI",
+    announcementUrl: "https://fireworks.ai/blog/ember-1",
+    status: "released",
+    actualDate: "2026-09-23",
+    providerBlurb:
+      "A specialized reasoning model based on Kimi K3 that Fireworks says preserves comparable quality while using roughly 40% fewer output tokens.",
+    ...price("15.000"),
+  },
+  {
+    name: "Perceptron Mk1.5",
+    slug: "perceptron-mk1-5",
+    provider: "Perceptron",
+    announcementUrl: "https://www.perceptron.inc/blog/introducing-perceptron-mk1-5",
+    status: "released",
+    actualDate: "2026-09-25",
+    providerBlurb:
+      "Perceptron's public model for embodied agents, adding native audio, video tracking, web search, sub-agent calls and more complex visual reasoning.",
+  },
+  {
+    name: "Claude Sonnet 5.5",
+    slug: "claude-sonnet-5-5",
+    provider: "Anthropic",
+    announcementUrl: "https://www.anthropic.com/claude-sonnet-5-5",
+    claimedBenchmarks: [
+      { label: "Terminal-Bench 4.0", value: "70.6%" },
+      { label: "FrontierCode 1.1 (Max)", value: "46.2%" },
+      { label: "CursorBench 4.0", value: "55.5%" },
+      { label: "Humanity's Last Exam (tools)", value: "64.5%" },
+    ],
+    status: "released",
+    actualDate: "2026-09-28",
+    providerBlurb:
+      "A faster, lower-cost complement to Opus 5.5 for everyday tasks, bug fixes and polished documents, slides and spreadsheets.",
+    ...price("10.000"),
+  },
+  {
+    name: "GPT-6.1 Sol",
+    slug: "gpt-6-1-sol",
+    provider: "OpenAI",
+    announcementUrl: "https://openai.com/index/introducing-gpt-6-1-sol/",
+    status: "released",
+    actualDate: "2026-09-29",
+    providerBlurb:
+      "A major upgrade to GPT-6 Sol that OpenAI says brings near-Astra performance to agentic coding, computer use and professional work at one-fifth of Astra's standard token prices.",
+    ...price("10.000"),
+  },
 
   // ── Unconfirmed: announced or rumored, not sourced claims ────────────────
   {

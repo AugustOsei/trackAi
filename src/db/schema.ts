@@ -240,6 +240,51 @@ export const suppressedSlugs = pgTable("suppressed_slugs", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/**
+ * The single X account whose bookmark folder feeds the automated field-note
+ * importer. OAuth tokens are encrypted before they reach this table; the
+ * singleton id keeps the first version intentionally single-owner.
+ */
+export const xBookmarkConnections = pgTable("x_bookmark_connections", {
+  id: integer("id").primaryKey().default(1),
+  xUserId: varchar("x_user_id", { length: 32 }).notNull().unique(),
+  username: varchar("username", { length: 100 }).notNull(),
+  accessTokenEncrypted: text("access_token_encrypted").notNull(),
+  refreshTokenEncrypted: text("refresh_token_encrypted").notNull(),
+  accessTokenExpiresAt: timestamp("access_token_expires_at", { withTimezone: true }).notNull(),
+  scopes: text("scopes").notNull(),
+  folderId: varchar("folder_id", { length: 32 }),
+  folderName: varchar("folder_name", { length: 200 }),
+  connectedAt: timestamp("connected_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  lastRunAt: timestamp("last_run_at", { withTimezone: true }),
+  lastImportedCount: integer("last_imported_count"),
+  lastUnmatchedCount: integer("last_unmatched_count"),
+  lastError: text("last_error"),
+});
+
+/**
+ * One durable record per bookmarked post. Successful reports are still
+ * deduplicated by reports.source_url; this table additionally remembers
+ * unmatched posts so the cron can report them without publishing a guess.
+ */
+export const xBookmarkImports = pgTable(
+  "x_bookmark_imports",
+  {
+    tweetId: varchar("tweet_id", { length: 32 }).primaryKey(),
+    sourceUrl: text("source_url").notNull(),
+    authorUsername: varchar("author_username", { length: 100 }),
+    postText: text("post_text").notNull(),
+    status: varchar("status", { length: 20 }).notNull(),
+    matchedSlugs: jsonb("matched_slugs").$type<string[]>().notNull().default([]),
+    reportId: integer("report_id").references(() => reports.id, { onDelete: "set null" }),
+    reason: text("reason"),
+    firstSeenAt: timestamp("first_seen_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("x_bookmark_imports_status_idx").on(table.status, table.updatedAt)],
+);
+
 export const modelsRelations = relations(models, ({ many }) => ({
   reportModels: many(reportModels),
 }));
@@ -267,3 +312,5 @@ export type ReportModel = typeof reportModels.$inferSelect;
 export type Subscriber = typeof subscribers.$inferSelect;
 export type NewSubscriber = typeof subscribers.$inferInsert;
 export type SuppressedSlug = typeof suppressedSlugs.$inferSelect;
+export type XBookmarkConnection = typeof xBookmarkConnections.$inferSelect;
+export type XBookmarkImport = typeof xBookmarkImports.$inferSelect;

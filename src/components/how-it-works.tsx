@@ -11,7 +11,7 @@ const PILLARS = [
   },
   {
     label: "READ THE REALITY",
-    body: "Reviewed reports from real usage, sourced from Hacker News, developer forums, YouTube, and X. Never published without a human pass first.",
+    body: "Reports from real usage, sourced from Hacker News, developer forums, YouTube, and X. Public submissions are reviewed; owner-curated X tests are matched automatically.",
   },
 ];
 

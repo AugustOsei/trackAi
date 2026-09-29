@@ -100,5 +100,5 @@ export const SOURCE_FILTERS: { value: Report["sourceType"]; label: string }[] = 
  * regex, not two copies that could drift.
  */
 export function tweetIdFromUrl(url: string): string | null {
-  return url.match(/(?:twitter|x)\.com\/[^/]+\/status(?:es)?\/(\d+)/)?.[1] ?? null;
+  return url.match(/(?:twitter|x)\.com\/(?:i\/web\/|[^/]+\/)status(?:es)?\/(\d+)/)?.[1] ?? null;
 }

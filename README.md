@@ -230,8 +230,11 @@ so known name variants do not create duplicate filters or model rows.
 
 ## Approving reports
 
-Nothing in the REALITY layer reaches the site until a person approves it. There
-are two ways in, and they authorise differently.
+Public and discovery-workflow submissions stay hidden until a person approves
+them. The owner-controlled X bookmark folder is the deliberate exception: its
+confident model matches publish automatically, while unmatched posts are held
+back. There are two ways to review the normal queue, and they authorise
+differently.
 
 **The daily digest email** (`03-review-digest-email.json`, 08:00 — after the
 07:00 ingest, so the morning's haul is already in the queue). n8n calls
@@ -268,12 +271,39 @@ hours, so the mailbox is now part of the security boundary. The blast radius is
 moderation only — no database access, no settings, nothing published that a
 person did not click.
 
+## Automatic X bookmark import
+
+The importer reads one folder from the connected admin X account twice daily
+through n8n. It fetches each bookmarked Post and its quoted-Post
+context, matches tracked model names, and publishes confident matches as
+Twitter reports. `reports.source_url` and `x_bookmark_imports.tweet_id` make
+repeated runs idempotent. Posts with no tracked model match are recorded as
+`unmatched` and never published by guessing.
+
+Setup:
+
+1. In the X Developer Console, create or edit a **Web App / Automated App** and
+   enable OAuth 2.0.
+2. Add the exact production callback URL
+   `https://trackai.theaugustdispatch.com/api/x/callback` and the website URL
+   `https://trackai.theaugustdispatch.com`.
+3. Copy the OAuth 2.0 Client ID and Client Secret into `X_CLIENT_ID` and
+   `X_CLIENT_SECRET` in Vercel.
+4. Generate a random value for `X_TOKEN_ENCRYPTION_KEY` using the command
+   documented in `.env.local.example`.
+5. Import `n8n/12-x-bookmark-import.json` and activate it. It runs at 08:00 and
+   20:00 America/Denver, uses the existing TrackAI ingest credential, and
+   emails only when it publishes something or finds a new unmatched post.
+6. Deploy, visit `/admin`, click **Connect X**, authorize the read-only scopes,
+   choose the bookmark folder, and run the first import.
+
 ## Deployment
 
 1. Create the Neon project; copy the **pooled** connection string.
 2. Create the Vercel project from the repo.
 3. Set `DATABASE_URL`, `ADMIN_PASSWORD_HASH`, `ADMIN_SESSION_SECRET`,
-   `INGEST_API_TOKEN`, `PUBLIC_BASE_URL` in Vercel.
+   `INGEST_API_TOKEN`, `PUBLIC_BASE_URL`, `X_CLIENT_ID`, `X_CLIENT_SECRET`, and
+   `X_TOKEN_ENCRYPTION_KEY` in Vercel.
 4. Run `npm run db:migrate` against the Neon URL.
 5. Check `GET /api/health` returns `{"ok":true}`.
 6. Add a `CNAME` for `trackai` pointing at Vercel, wherever

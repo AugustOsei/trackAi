@@ -34,6 +34,15 @@ export const env = {
   get ingestToken() {
     return required("INGEST_API_TOKEN");
   },
+  get xClientId() {
+    return required("X_CLIENT_ID");
+  },
+  get xClientSecret() {
+    return required("X_CLIENT_SECRET");
+  },
+  get xTokenEncryptionKey() {
+    return required("X_TOKEN_ENCRYPTION_KEY");
+  },
 };
 
 /**
@@ -68,5 +77,8 @@ export function missingEnvVars(): string[] {
     "INGEST_API_TOKEN",
     "PUBLIC_BASE_URL",
     "N8N_SUBSCRIBE_CONFIRM_WEBHOOK_URL",
+    "X_CLIENT_ID",
+    "X_CLIENT_SECRET",
+    "X_TOKEN_ENCRYPTION_KEY",
   ].filter((name) => !process.env[name]);
 }
