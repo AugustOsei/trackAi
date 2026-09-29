@@ -325,8 +325,7 @@ export async function importXBookmarkFolder(): Promise<XImportSummary> {
   const { connection, accessToken } = await connectionAndToken();
   try {
     const ids = await bookmarkIds(connection, accessToken);
-    const [{ posts, users, referencedPosts }, candidates, existingTwitterReports] = await Promise.all([
-      lookupPosts(ids, accessToken),
+    const [candidates, existingTwitterReports, previousImports] = await Promise.all([
       db
         .select({ id: models.id, name: models.name, slug: models.slug, provider: models.provider })
         .from(models)
@@ -335,13 +334,19 @@ export async function importXBookmarkFolder(): Promise<XImportSummary> {
         .select({ id: reports.id, sourceUrl: reports.sourceUrl })
         .from(reports)
         .where(eq(reports.sourceType, "twitter")),
+      ids.length
+        ? db
+            .select({
+              tweetId: xBookmarkImports.tweetId,
+              status: xBookmarkImports.status,
+              sourceUrl: xBookmarkImports.sourceUrl,
+              authorUsername: xBookmarkImports.authorUsername,
+              postText: xBookmarkImports.postText,
+            })
+            .from(xBookmarkImports)
+            .where(inArray(xBookmarkImports.tweetId, ids))
+        : Promise.resolve([]),
     ]);
-    const previousImports = ids.length
-      ? await db
-          .select({ tweetId: xBookmarkImports.tweetId, status: xBookmarkImports.status })
-          .from(xBookmarkImports)
-          .where(inArray(xBookmarkImports.tweetId, ids))
-      : [];
     const previousStatus = new Map(previousImports.map((item) => [item.tweetId, item.status]));
     const existingReportByTweetId = new Map<string, number>();
     for (const report of existingTwitterReports) {
@@ -349,55 +354,65 @@ export async function importXBookmarkFolder(): Promise<XImportSummary> {
       if (tweetId) existingReportByTweetId.set(tweetId, report.id);
     }
     const summary: XImportSummary = {
-      scanned: posts.length,
+      scanned: ids.length,
       imported: 0,
       duplicates: 0,
       unmatched: 0,
       unmatchedPosts: [],
     };
 
-    for (const post of posts) {
-      const username = post.author_id ? users.get(post.author_id)?.username : undefined;
+    // The folder endpoint gives us IDs. Only hydrate IDs TrackAI has never
+    // seen; rereading every old Post on every schedule would turn a no-change
+    // run into another full set of billable Post reads.
+    const idsToLookup = ids.filter(
+      (id) => !previousStatus.has(id) && !existingReportByTweetId.has(id),
+    );
+    const { posts, users, referencedPosts } = idsToLookup.length
+      ? await lookupPosts(idsToLookup, accessToken)
+      : { posts: [] as XPost[], users: new Map<string, XUser>(), referencedPosts: new Map<string, XPost>() };
+    const storedImportById = new Map(previousImports.map((item) => [item.tweetId, item]));
+    const postsToProcess: XPost[] = [
+      ...posts,
+      ...previousImports
+        .filter((item) => item.status === "unmatched")
+        .map((item) => ({ id: item.tweetId, text: item.postText })),
+    ];
+
+    summary.duplicates = ids.filter(
+      (id) => previousStatus.get(id) === "imported" || existingReportByTweetId.has(id),
+    ).length;
+
+    // Older reports may predate the importer table. Remember their Tweet IDs
+    // without paying to hydrate them again, so every later run is a cheap skip.
+    for (const id of ids) {
+      const reportId = existingReportByTweetId.get(id);
+      if (!reportId || previousStatus.has(id)) continue;
+      const existingReport = existingTwitterReports.find((report) => report.id === reportId);
+      await db
+        .insert(xBookmarkImports)
+        .values({
+          tweetId: id,
+          sourceUrl: existingReport?.sourceUrl ?? `https://x.com/i/web/status/${id}`,
+          postText: "",
+          status: "imported",
+          matchedSlugs: [],
+          reportId,
+        })
+        .onConflictDoNothing({ target: xBookmarkImports.tweetId });
+    }
+
+    for (const post of postsToProcess) {
+      const storedImport = storedImportById.get(post.id);
+      const username = storedImport?.authorUsername ?? (post.author_id ? users.get(post.author_id)?.username : undefined);
       const text = post.note_tweet?.text ?? post.text ?? "";
       const referencedText = (post.referenced_tweets ?? [])
         .map((reference) => referencedPosts.get(reference.id))
         .map((reference) => reference?.note_tweet?.text ?? reference?.text ?? "")
         .join(" ");
       const matched = matchModels(`${text} ${referencedText}`, candidates);
-      const sourceUrl = username
+      const sourceUrl = storedImport?.sourceUrl ?? (username
         ? `https://x.com/${username}/status/${post.id}`
-        : `https://x.com/i/web/status/${post.id}`;
-      const existingReportId = existingReportByTweetId.get(post.id);
-
-      if (previousStatus.get(post.id) === "imported" || existingReportId) {
-        if (existingReportId && previousStatus.get(post.id) !== "imported") {
-          await db
-            .insert(xBookmarkImports)
-            .values({
-              tweetId: post.id,
-              sourceUrl,
-              authorUsername: username,
-              postText: text,
-              status: "imported",
-              matchedSlugs: [],
-              reportId: existingReportId,
-            })
-            .onConflictDoUpdate({
-              target: xBookmarkImports.tweetId,
-              set: {
-                sourceUrl,
-                authorUsername: username,
-                postText: text,
-                status: "imported",
-                reportId: existingReportId,
-                reason: null,
-                updatedAt: new Date(),
-              },
-            });
-        }
-        summary.duplicates += 1;
-        continue;
-      }
+        : `https://x.com/i/web/status/${post.id}`);
 
       if (matched.length === 0) {
         await db
