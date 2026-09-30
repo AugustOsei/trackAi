@@ -10,9 +10,9 @@ Deploys to `trackai.theaugustdispatch.com`.
 
 | | CLAIM | REALITY |
 | --- | --- | --- |
-| Source | The provider's own announcement | Hacker News, Reddit, YouTube, developer forums + public submissions |
-| What it is | What the lab says about its own model, plus the figures it chose to publish, plus a link to the post | What someone found when they actually used it |
-| Publishing | Automatic | **Never** auto-published; every report waits for review |
+| Source | The provider's own announcement | Hand-picked X posts (imported from a bookmark folder) + public submissions |
+| What it is | What the lab says about its own model, plus the figures it chose to publish, plus a link to the post | A real test: someone putting the model to work and showing the result |
+| Publishing | Automatic | X bookmarks publish on import (bookmarking *is* the review); public submissions wait for review |
 
 There is deliberately no independent-benchmark layer. trackai is not a
 leaderboard — it sets what a lab claims against what users report, and a
@@ -22,7 +22,27 @@ flatter it. The About page says so to readers.
 
 The ingest endpoint for reports has no way to publish directly — it writes
 `status: 'pending'` unconditionally. Approval happens either from the daily
-digest email or in `/admin`.
+digest email or in `/admin`. The X bookmark importer is a separate path (see
+[Automatic X bookmark import](#automatic-x-bookmark-import)).
+
+## The homepage
+
+- **The harbour** (`src/components/harbour/`): the year as one continuous
+  strip where x is the date. Each model is a ship whose bow sits on its
+  release day, pinned there; the scenery (port, water, bank, clouds) streams
+  past it, so the fleet reads as under way. Dates live on a fixed timing rail.
+- **The feed** (`src/components/home/`): builder tests sorted by when the
+  original post was made (X post time is decoded from the tweet ID), beside a
+  new-releases rail and a "how trackai runs" rail.
+- **The footer** (`src/components/footer/`): an engraved sea with a tug
+  hauling the three newest releases. The linework is generated — edit
+  `scripts/generate-footer-art.py` and re-run it rather than editing
+  `src/components/footer/art.ts` by hand.
+- The homepage renders in the light theme (`html:has(.theme-harbour)` in
+  `globals.css`); other pages are still dark.
+- `/privacy` describes what the site collects. It was written from the code —
+  update it if the subscribers table, the rate limiter, analytics or the email
+  sender change.
 
 ## Stack
 
@@ -63,6 +83,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 | `npm run db:seed` | Reset and reseed sample data (destructive) |
 | `npm run db:studio` | Drizzle Studio |
 | `npm run hash-password` | Hash an admin password |
+| `python3 scripts/generate-footer-art.py` | Regenerate the footer's engraved artwork |
 
 **Use `db:migrate`, not `db:push`.** `db:push` diffs the schema straight onto
 the database with no migration history — fine while iterating locally, wrong
@@ -155,6 +176,12 @@ tokens rewriting identical text.
 
 ### Where reality reports come from
 
+> **Retired as of 2026-09-30.** These four collectors produced posts *about*
+> models rather than tests *of* them, so their output was all rejected. Real
+> tests now come from the hand-picked X bookmark folder
+> ([below](#automatic-x-bookmark-import)) and public submissions. Deactivate
+> workflows 02, 04, 05 and 06 in n8n; the notes are kept for the record.
+
 Four collectors, staggered through the morning so they don't collide, each
 tagged so a reader can see the provenance and filter by it. Breadth here is the
 point: a tracker that only reads one forum inherits that forum's blind spots.
@@ -181,7 +208,9 @@ free allowance and pulling 100 comments costs 1, so only models from the last 45
 days are searched — searching all 38 tracked models daily would spend a third of
 the budget re-finding videos nobody is still watching.
 
-**Deliberately not used:** X/Twitter (API starts at $200/month), GitHub (tested —
+**Deliberately not used (at the time):** X/Twitter search (API starts at
+$200/month — X later became the main source, via the owner's own bookmark
+folder rather than search), GitHub (tested —
 `"opus" in:body` returns 340k results dominated by unrelated dependency bumps),
 Stack Overflow (it answers "how do I fix this code", not "how did this model
 perform").
@@ -279,6 +308,12 @@ context, matches tracked model names, and publishes confident matches as
 Twitter reports. `reports.source_url` and `x_bookmark_imports.tweet_id` make
 repeated runs idempotent. Posts with no tracked model match are recorded as
 `unmatched` and never published by guessing.
+
+Model matching lives in `src/lib/model-match.ts` (no dependencies, so it can
+be tested directly). Two rules matter: a dot between digits is kept, so
+"Sonnet 5.5" never also matches "Sonnet 5"; and the longest matched name wins,
+so "GPT-6 Sol" doesn't also tag "GPT-6". A post that names both versions
+separately ("Opus 5.5 vs Opus 5") keeps both. At most five models per report.
 
 Setup:
 
