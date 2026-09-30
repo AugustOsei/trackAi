@@ -2,7 +2,7 @@ import Link from "next/link";
 import { LogoDots } from "@/components/logo-dots";
 
 const LINKS = [
-  { href: "/", label: "Timeline" },
+  { href: "/", label: "Harbour" },
   { href: "/reports", label: "Reports" },
   { href: "/submit", label: "Submit" },
   { href: "/about", label: "About" },
@@ -11,7 +11,7 @@ const LINKS = [
 export function SiteNav() {
   return (
     <header className="border-b border-hairline">
-      <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-4 sm:px-6">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-4 sm:px-6">
         <Link
           href="/"
           className="font-display text-2xl font-black tracking-tight text-ink"

@@ -544,3 +544,1094 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ------------------------------------------------------------------------
+   Harbour — the homepage release map. A flat, top-down, light scene set
+   inside an otherwise dark site, so it carries its own palette rather than
+   the site tokens. See src/components/harbour/ for how it's laid out.
+   ------------------------------------------------------------------------ */
+.hb {
+  position: relative;
+}
+
+.hb-viewport {
+  position: relative;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: pan-y;
+  overscroll-behavior-x: contain;
+  user-select: none;
+  -webkit-user-select: none;
+  /* The bands are uniform left to right, so they're painted once on the
+     viewport: port, timing rail, river, stone rim, grass. Everything with
+     detail (containers, trees, fish) streams past on top. */
+  background: linear-gradient(
+    180deg,
+    #9a9ea3 0 104px,
+    #17323a 104px 140px,
+    #3eb8b7 140px,
+    #52c6c3 444px,
+    #d8c9a2 444px 452px,
+    #9bd27f 452px
+  );
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.hb-viewport[data-ready="true"] {
+  opacity: 1;
+}
+
+.hb-viewport.is-dragging {
+  cursor: grabbing;
+}
+
+.hb-viewport:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: -2px;
+}
+
+.hb-caustics {
+  position: absolute;
+  inset: 0 -240px 0 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' fill='none' stroke='white' stroke-opacity='0.11' stroke-width='2.2' stroke-linejoin='round'%3E%3Cpath d='M63 113Q64 120 59 126L44 141Q39 147 30 138L6 115Q-3 106 3 101L20 87Q26 82 33 84L52 87Q59 88 61 95Z'/%3E%3Cpath d='M303 113Q304 120 299 126L284 141Q279 147 270 138L246 115Q237 106 243 101L260 87Q266 82 273 84L292 87Q299 88 301 95Z'/%3E%3Cpath d='M-19 68Q-24 76 -31 73L-49 65Q-56 62 -61 58L-74 50Q-79 47 -75 39L-64 19Q-60 11 -51 10L-28 5Q-19 4 -15 11L-4 31Q-0 39 -5 47Z'/%3E%3Cpath d='M-19 308Q-24 316 -31 313L-49 305Q-56 302 -61 298L-74 290Q-79 287 -75 279L-64 259Q-60 251 -51 250L-28 245Q-19 244 -15 251L-4 271Q-0 279 -5 287Z'/%3E%3Cpath d='M221 68Q216 76 209 73L191 65Q184 62 179 58L166 50Q161 47 165 39L176 19Q180 11 189 10L212 5Q221 4 225 11L236 31Q240 39 235 47Z'/%3E%3Cpath d='M221 308Q216 316 209 313L191 305Q184 302 179 298L166 290Q161 287 165 279L176 259Q180 251 189 250L212 245Q221 244 225 251L236 271Q240 279 235 287Z'/%3E%3Cpath d='M3 140Q3 149 -6 149L-30 152Q-39 152 -44 144L-58 124Q-63 116 -58 111L-46 97Q-41 91 -31 96L-7 107Q3 111 3 119Z'/%3E%3Cpath d='M243 140Q243 149 234 149L210 152Q201 152 196 144L182 124Q177 116 182 111L194 97Q199 91 209 96L233 107Q243 111 243 119Z'/%3E%3Cpath d='M117 89Q124 81 135 85L161 95Q172 99 171 109L170 136Q169 147 157 147L126 147Q113 147 108 140L96 124Q92 117 99 109Z'/%3E%3Cpath d='M23 28Q20 17 26 15L42 12Q48 10 58 16L85 32Q96 38 91 42L80 53Q76 57 67 59L42 64Q33 66 30 55Z'/%3E%3Cpath d='M23 268Q20 257 26 255L42 252Q48 250 58 256L85 272Q96 278 91 282L80 293Q76 297 67 299L42 304Q33 306 30 295Z'/%3E%3Cpath d='M181 -1Q177 3 170 -7L151 -33Q144 -43 149 -52L163 -75Q169 -84 176 -81L193 -74Q200 -71 204 -65L214 -51Q218 -46 213 -39L199 -21Q194 -15 190 -11Z'/%3E%3Cpath d='M181 239Q177 243 170 233L151 207Q144 197 149 188L163 165Q169 156 176 159L193 166Q200 169 204 175L214 189Q218 194 213 201L199 219Q194 225 190 229Z'/%3E%3Cpath d='M149 36Q148 43 141 45L124 52Q117 54 112 51L98 44Q93 42 93 31L93 4Q94 -6 101 -4L119 1Q126 3 132 4L146 8Q152 10 151 17Z'/%3E%3Cpath d='M149 276Q148 283 141 285L124 292Q117 294 112 291L98 284Q93 282 93 271L93 244Q94 234 101 236L119 241Q126 243 132 244L146 248Q152 250 151 257Z'/%3E%3Cpath d='M3 -21Q-7 -22 -8 -29L-12 -49Q-14 -57 -5 -66L16 -89Q25 -99 30 -95L44 -86Q49 -83 54 -75L67 -55Q71 -48 64 -41L44 -24Q36 -17 26 -18Z'/%3E%3Cpath d='M3 219Q-7 218 -8 211L-12 191Q-14 183 -5 174L16 151Q25 141 30 145L44 154Q49 157 54 165L67 185Q71 192 64 199L44 216Q36 223 26 222Z'/%3E%3Cpath d='M243 -21Q233 -22 232 -29L228 -49Q226 -57 235 -66L256 -89Q265 -99 270 -95L284 -86Q289 -83 294 -75L307 -55Q311 -48 304 -41L284 -24Q276 -17 266 -18Z'/%3E%3Cpath d='M243 219Q233 218 232 211L228 191Q226 183 235 174L256 151Q265 141 270 145L284 154Q289 157 294 165L307 185Q311 192 304 199L284 216Q276 223 266 222Z'/%3E%3Cpath d='M86 -37Q81 -43 85 -51L96 -69Q99 -76 110 -70L138 -57Q149 -51 146 -41L138 -15Q134 -5 128 -7L111 -13Q104 -15 99 -21Z'/%3E%3Cpath d='M86 203Q81 197 85 189L96 171Q99 164 110 170L138 183Q149 189 146 199L138 225Q134 235 128 233L111 227Q104 225 99 219Z'/%3E%3C/svg%3E");
+  background-size: 240px 240px;
+}
+
+.hb-caustics-shimmer {
+  inset: 0 -240px 0 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' fill='none' stroke='white' stroke-opacity='0.09' stroke-width='1.6' stroke-linejoin='round'%3E%3Cpath d='M201 220Q196 220 192 216L181 206Q177 202 180 198L190 188Q193 184 201 185L220 187Q227 188 225 194L220 211Q218 217 213 218Z'/%3E%3Cpath d='M104 -45Q105 -54 110 -60L125 -73Q130 -78 135 -73L147 -59Q152 -54 152 -46L150 -28Q150 -21 139 -19L113 -15Q103 -13 103 -22Z'/%3E%3Cpath d='M104 195Q105 186 110 180L125 167Q130 162 135 167L147 181Q152 186 152 194L150 212Q150 219 139 221L113 225Q103 227 103 218Z'/%3E%3Cpath d='M-61 64Q-70 62 -68 56L-64 41Q-62 35 -57 29L-47 15Q-43 9 -35 13L-17 24Q-10 29 -14 37L-23 59Q-26 68 -36 67Z'/%3E%3Cpath d='M-61 304Q-70 302 -68 296L-64 281Q-62 275 -57 269L-47 255Q-43 249 -35 253L-17 264Q-10 269 -14 277L-23 299Q-26 308 -36 307Z'/%3E%3Cpath d='M179 64Q170 62 172 56L176 41Q178 35 183 29L193 15Q197 9 205 13L223 24Q230 29 226 37L217 59Q214 68 204 67Z'/%3E%3Cpath d='M179 304Q170 302 172 296L176 281Q178 275 183 269L193 255Q197 249 205 253L223 264Q230 269 226 277L217 299Q214 308 204 307Z'/%3E%3Cpath d='M68 175Q71 179 70 185L69 199Q68 205 62 204L44 202Q37 202 33 200L20 196Q16 194 18 189L23 175Q24 169 32 167L51 163Q58 161 61 165Z'/%3E%3Cpath d='M135 47Q141 52 136 57L122 71Q117 76 113 78L102 83Q98 85 95 77L86 57Q83 49 89 45L107 34Q113 30 119 34Z'/%3E%3Cpath d='M-53 81Q-48 77 -39 81L-17 91Q-9 95 -9 104L-10 127Q-10 136 -13 138L-21 141Q-24 143 -33 139L-54 130Q-63 127 -65 119L-69 101Q-70 94 -65 90Z'/%3E%3Cpath d='M187 81Q192 77 201 81L223 91Q231 95 231 104L230 127Q230 136 227 138L219 141Q216 143 207 139L186 130Q177 127 175 119L171 101Q170 94 175 90Z'/%3E%3C/svg%3E");
+}
+
+/* Streaming scenery. Each layer is only a viewport (plus one tile) wide;
+   harbour.tsx shifts it by (camera + distance sailed) mod its tile width. */
+.hb-flow {
+  position: absolute;
+  left: 0;
+  will-change: transform;
+}
+
+.hb-tile {
+  position: absolute;
+  top: 0;
+  height: 100%;
+}
+
+.hb-tile > svg {
+  display: block;
+}
+
+.hb-river {
+  position: absolute;
+  left: 0;
+  right: 0;
+  overflow: hidden;
+}
+
+.hb-world {
+  position: absolute;
+  top: 0;
+  left: 0;
+  will-change: transform;
+}
+
+.hb-clouds {
+  pointer-events: none;
+  z-index: 3;
+}
+
+.hb-rail {
+  position: absolute;
+  left: 0;
+  display: block;
+}
+
+.hb-rail-day {
+  font-family: var(--font-data);
+  font-size: 11px;
+  font-weight: 600;
+  fill: rgba(233, 241, 239, 0.85);
+}
+
+.hb-rail-month {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  fill: #f1c232;
+}
+
+.hb-rail-label {
+  font-family: var(--font-data);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  fill: rgba(233, 241, 239, 0.6);
+}
+
+.hb-today-chip {
+  position: absolute;
+  z-index: 2;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  border-radius: 999px;
+  background: var(--color-gold);
+  color: var(--color-gold-fg);
+  padding: 3px 10px;
+  font-family: var(--font-data);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2);
+}
+
+.hb-sparkle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: #fff;
+  clip-path: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%);
+  opacity: 0.7;
+}
+
+.hb-fog {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 720px;
+  background: linear-gradient(90deg, rgba(235, 246, 246, 0) 0%, rgba(235, 246, 246, 0.55) 30%, rgba(235, 246, 246, 0.75) 100%);
+}
+
+.hb-fog span {
+  position: absolute;
+  top: 40px;
+  left: 180px;
+  font-family: var(--font-data);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(23, 60, 70, 0.6);
+}
+
+/* Ships */
+.hb-ship {
+  position: absolute;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.hb-ship:hover,
+.hb-ship:focus-visible,
+.hb-ship[data-selected="true"] {
+  z-index: 7;
+}
+
+.hb-ship:focus-visible {
+  outline: none;
+}
+
+.hb-hull {
+  position: absolute;
+  inset: 0;
+  display: block;
+  transform-origin: 50% 30%;
+  transition: filter 0.2s ease;
+}
+
+.hb-hull svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.hb-ship:hover .hb-hull,
+.hb-ship:focus-visible .hb-hull {
+  filter: drop-shadow(0 0 0 #fff) drop-shadow(0 0 3px rgba(255, 255, 255, 0.9));
+}
+
+.hb-ship[data-selected="true"] .hb-hull {
+  filter: drop-shadow(0 0 0 var(--color-gold)) drop-shadow(0 0 4px var(--color-gold));
+}
+
+.is-ghost .hb-hull,
+.is-uncharted .hb-hull {
+  opacity: 0.5;
+  filter: grayscale(1) brightness(1.25);
+}
+
+.is-inbound .hb-hull {
+  filter: saturate(0.7);
+}
+
+/* The front of the race: a dotted line of buoys across the river just past
+   today. */
+.hb-buoys {
+  position: absolute;
+  width: 10px;
+  background: radial-gradient(circle at 5px 5px, #e63946 0 3.5px, #fff 3.5px 5px, transparent 5px) 0 0 / 10px 26px repeat-y;
+  filter: drop-shadow(2px 3px 0 rgba(6, 64, 74, 0.25));
+}
+
+/* Wake: two foam arms spreading back from the stern and a churned core. The
+   dashes run backwards along the arms, which is most of what makes a ship
+   that is pinned to its date read as under way. */
+.hb-wake {
+  position: absolute;
+  right: 92%;
+  top: 50%;
+  width: 150px;
+  height: 40px;
+  margin-top: -20px;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(to left, #000 20%, transparent);
+  mask-image: linear-gradient(to left, #000 20%, transparent);
+}
+
+.hb-wake i {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  width: 100%;
+  height: 2px;
+  transform-origin: right center;
+  background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.85) 0 12px, transparent 12px 20px);
+}
+
+.hb-wake i:first-child {
+  rotate: 7deg;
+}
+
+.hb-wake i:nth-child(2) {
+  rotate: -7deg;
+}
+
+.hb-wake b {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  width: 70%;
+  height: 8px;
+  margin-top: -4px;
+  border-radius: 999px;
+  background: linear-gradient(to left, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0));
+}
+
+.is-inbound .hb-wake {
+  opacity: 0.6;
+}
+
+.hb-tether {
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  width: 0;
+  border-left: 2px dotted rgba(255, 255, 255, 0.9);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+
+.hb-ship:hover .hb-tether,
+.hb-ship:focus-visible .hb-tether,
+.hb-ship[data-selected="true"] .hb-tether {
+  opacity: 1;
+}
+
+/* Bow wave: a curl of white water pushed ahead of the stem. */
+.hb-bow {
+  position: absolute;
+  top: -4px;
+  right: -7px;
+  width: 12px;
+  height: calc(100% + 8px);
+  border: 2.5px solid rgba(255, 255, 255, 0.85);
+  border-left: 0;
+  border-radius: 0 999px 999px 0;
+  transform-origin: left center;
+  pointer-events: none;
+}
+
+.hb-cloud {
+  position: absolute;
+  width: 220px;
+  height: 150px;
+  transform-origin: top left;
+  scale: var(--scale);
+}
+
+.hb-cloud svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Log panel */
+.hb-log {
+  position: absolute;
+  z-index: 6;
+  top: calc(140px + 14px);
+  right: 16px;
+  width: 320px;
+  max-height: calc(100% - 140px - 96px);
+  overflow-y: auto;
+  padding: 16px 18px 18px;
+  border-radius: 16px;
+  background: #fbf8f1;
+  color: #17323a;
+  box-shadow: 0 6px 0 rgba(6, 64, 74, 0.2);
+  cursor: auto;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.hb-log-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--font-data);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #5b7780;
+}
+
+.hb-log-head button {
+  font-size: 22px;
+  line-height: 1;
+  color: #5b7780;
+  cursor: pointer;
+}
+
+.hb-log-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.hb-log-title p {
+  font-size: 12px;
+  font-weight: 600;
+  color: #5b7780;
+}
+
+.hb-log-title h2 {
+  font-family: var(--font-display);
+  font-size: 22px;
+  line-height: 1.1;
+  font-weight: 900;
+}
+
+.hb-log-blurb {
+  margin-top: 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #35535c;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.hb-log-reports {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #e5dccb;
+}
+
+.hb-log-reports span {
+  font-family: var(--font-data);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #b07a1a;
+}
+
+.hb-log-reports p {
+  margin-top: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.hb-log-link {
+  display: inline-block;
+  margin-top: 14px;
+  border-radius: 999px;
+  background: #17323a;
+  color: #fbf8f1;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.hb-log-link:hover {
+  background: #0f252b;
+}
+
+/* Bottom navigation: month steps, the whole-year minimap, Today. */
+.hb-nav {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: min(820px, calc(100% - 24px));
+  transform: translateX(-50%);
+  padding: 6px;
+  border-radius: 14px;
+  background: rgba(11, 45, 53, 0.82);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  cursor: auto;
+}
+
+.hb-nav-step,
+.hb-nav-today {
+  flex-shrink: 0;
+  height: 36px;
+  border-radius: 9px;
+  color: #eaf6f5;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.hb-nav-step {
+  width: 36px;
+}
+
+.hb-nav-today {
+  padding: 0 12px;
+  font-size: 13px;
+  background: var(--color-gold);
+  color: var(--color-gold-fg);
+}
+
+.hb-nav-step:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.hb-nav-step:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.hb-map {
+  position: relative;
+  flex: 1;
+  height: 36px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+  touch-action: none;
+  overflow: hidden;
+}
+
+.hb-map-month {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  padding: 4px 0 0 5px;
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
+  font-family: var(--font-data);
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(234, 246, 245, 0.55);
+  pointer-events: none;
+}
+
+.hb-map-month[data-active="true"] {
+  color: #fff;
+}
+
+.hb-map-full {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .hb-map-month {
+    font-size: 0;
+  }
+  .hb-map-full {
+    display: inline;
+    font-size: 10px;
+  }
+}
+
+.hb-map-dot {
+  position: absolute;
+  bottom: 6px;
+  width: 4px;
+  height: 10px;
+  margin-left: -2px;
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.hb-map-dot.is-ghost,
+.hb-map-dot.is-uncharted {
+  opacity: 0.4;
+}
+
+.hb-map-today {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--color-gold);
+  pointer-events: none;
+}
+
+.hb-map-window {
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  pointer-events: none;
+}
+
+@media (max-width: 767px) {
+  .hb-log {
+    top: auto;
+    right: 12px;
+    left: 12px;
+    bottom: 70px;
+    width: auto;
+    max-height: 60%;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hb-sparkle {
+    animation: hb-twinkle 4s ease-in-out infinite;
+  }
+  .hb-cloud {
+    animation: hb-cloud-drift 30s ease-in-out infinite alternate;
+  }
+  .hb-hull {
+    animation: hb-bob 3.2s ease-in-out infinite;
+    animation-delay: var(--bob-delay);
+  }
+  .hb-wake i {
+    animation: hb-foam 0.5s linear infinite;
+  }
+  .hb-bow {
+    animation: hb-bow 0.6s ease-in-out infinite alternate;
+  }
+  .hb-wake b {
+    animation: hb-churn 1.4s ease-in-out infinite;
+    animation-delay: var(--bob-delay);
+  }
+}
+
+@keyframes hb-twinkle {
+  0%, 100% { opacity: 0; transform: scale(0.4); }
+  50% { opacity: 0.8; transform: scale(1); }
+}
+
+@keyframes hb-cloud-drift {
+  from { transform: translateX(0); }
+  to { transform: translateX(90px); }
+}
+
+@keyframes hb-bob {
+  0%, 100% { transform: translateY(-1px) rotate(-0.6deg); }
+  50% { transform: translateY(1px) rotate(0.6deg); }
+}
+
+@keyframes hb-foam {
+  from { background-position-x: 0; }
+  to { background-position-x: -40px; }
+}
+
+@keyframes hb-churn {
+  0%, 100% { opacity: 0.65; scale: 1 1; }
+  50% { opacity: 1; scale: 1.08 1.2; }
+}
+
+@keyframes hb-bow {
+  from { transform: scaleX(0.75); opacity: 0.7; }
+  to { transform: scaleX(1.15); opacity: 1; }
+}
+
+/* ------------------------------------------------------------------------
+   Harbour theme — light, taken from the harbour illustration. Scoped for
+   now: any page that renders a .theme-harbour element switches the whole
+   document (nav and footer included) over, so it can be tried on the
+   homepage before the rest of the site follows.
+   ------------------------------------------------------------------------ */
+html:has(.theme-harbour) {
+  color-scheme: light;
+  --color-bg: #f4ecdc;
+  --color-surface: #fbf8f1;
+  --color-surface-raised: #efe6d3;
+  --color-ink: #17323a;
+  --color-ink-muted: #4b666e;
+  --color-ink-faint: #7f9296;
+  /* Quay-paint yellow for fills. Yellow text on cream is unreadable, so
+     anything that used gold as a *text* colour gets a deep ochre instead. */
+  --color-gold: #f1c232;
+  --color-gold-fg: #17323a;
+  --color-hairline: #e3d8c3;
+}
+
+html:has(.theme-harbour) .text-gold,
+html:has(.theme-harbour) .hover\:text-gold:hover,
+html:has(.theme-harbour) .group:hover .group-hover\:text-gold {
+  color: #9a6500;
+}
+
+/* Flat offset shadow, the same one the harbour's tags and log panel use. */
+.paper {
+  background: var(--color-surface);
+  border: 1px solid var(--color-hairline);
+  box-shadow: 0 4px 0 rgba(23, 50, 58, 0.07);
+}
+
+/* Footer as the sea the page ends in. */
+html:has(.theme-harbour) .site-footer {
+  position: relative;
+  margin-top: 64px;
+  border: 0;
+  background-color: #3eb8b7;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' fill='none' stroke='white' stroke-opacity='.12' stroke-width='2.2'%3E%3Cpath d='M20 30Q60 10 90 40T160 50T230 30M10 130Q50 110 90 140T170 150T235 120M30 210Q70 190 110 215T200 220'/%3E%3C/svg%3E");
+  color: rgba(255, 255, 255, 0.9);
+}
+
+html:has(.theme-harbour) .site-footer::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -1px;
+  height: 22px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='22' viewBox='0 0 120 22'%3E%3Cpath d='M0 0H120V8Q90 22 60 10T0 8Z' fill='%23e9d9b0'/%3E%3Cpath d='M0 0H120V3Q90 15 60 5T0 3Z' fill='%23f4ecdc'/%3E%3C/svg%3E") repeat-x;
+  background-size: 120px 22px;
+}
+
+html:has(.theme-harbour) .site-footer p {
+  color: rgba(255, 255, 255, 0.88);
+}
+
+/* The logo's yellow dots wash out on cream; a deeper yellow keeps them. */
+html:has(.theme-harbour) .logo-dot {
+  background: #e0a800;
+}
+
+
+/* ------------------------------------------------------------------------
+   Homepage columns: release rail | builder-test feed | about rail.
+   ------------------------------------------------------------------------ */
+.home-columns {
+  display: grid;
+  gap: 20px;
+  align-items: start;
+}
+
+/* Phones: the feed is the point, so it comes first; the harbour above has
+   already shown the releases. */
+.home-feed { order: 1; }
+.home-releases { order: 2; }
+.home-about { order: 3; }
+
+@media (min-width: 1024px) {
+  .home-columns {
+    grid-template-columns: minmax(0, 1fr) 300px;
+    grid-template-rows: auto 1fr;
+  }
+  .home-feed { grid-column: 1; grid-row: 1 / span 2; }
+  .home-releases { grid-column: 2; grid-row: 1; }
+  .home-about { grid-column: 2; grid-row: 2; }
+}
+
+@media (min-width: 1280px) {
+  .home-columns {
+    grid-template-columns: 270px minmax(0, 1fr) 300px;
+    grid-template-rows: auto;
+  }
+  .home-releases { grid-column: 1; grid-row: 1; position: sticky; top: 16px; }
+  .home-feed { grid-column: 2; grid-row: 1; }
+  .home-about { grid-column: 3; grid-row: 1; position: sticky; top: 16px; }
+}
+
+/* One continuous column, X-timeline style: a single sheet with the posts
+   divided by hairlines, not a stack of separate cards. */
+.feed-column {
+  overflow: hidden;
+  border: 1px solid var(--color-hairline);
+  border-radius: 20px;
+  background: var(--color-surface);
+}
+
+.feed-compose {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--color-hairline);
+}
+
+.feed-compose:hover {
+  background: var(--color-bg);
+}
+
+.feed-tabs {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--color-hairline);
+  scrollbar-width: none;
+}
+
+.feed-tab {
+  position: relative;
+  flex-shrink: 0;
+  padding: 12px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-ink-faint);
+  cursor: pointer;
+}
+
+.feed-tab:hover {
+  color: var(--color-ink);
+}
+
+.feed-tab[aria-selected="true"] {
+  color: var(--color-ink);
+}
+
+.feed-tab[aria-selected="true"]::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 0;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--color-gold);
+}
+
+.feed-post {
+  padding: 14px 16px 16px;
+  border-bottom: 1px solid var(--color-hairline);
+  transition: background 0.15s ease;
+}
+
+.feed-post:hover {
+  background: #fffdf8;
+}
+
+.feed-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  background: var(--color-surface-raised);
+  padding: 4px 12px 4px 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-ink);
+  transition: background 0.15s ease;
+}
+
+.feed-pill:last-child {
+  padding-left: 12px;
+  font-weight: 600;
+  color: var(--color-ink-muted);
+}
+
+.feed-pill:hover {
+  background: var(--color-hairline);
+}
+
+/* Side rails: Reddit's "recent posts" panel. */
+.side-panel {
+  border: 1px solid var(--color-hairline);
+  border-radius: 20px;
+  background: var(--color-surface);
+}
+
+.side-panel-title {
+  padding: 16px 16px 6px;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 900;
+  color: var(--color-ink);
+}
+
+.panel-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  transition: background 0.15s ease;
+}
+
+.panel-row:hover {
+  background: var(--color-bg);
+}
+
+/* ------------------------------------------------------------------------
+   Harbour: floating provider markers, the race-in, and life in the water.
+   ------------------------------------------------------------------------ */
+
+/* Markers sit in the world's stacking context (ships deliberately don't set
+   a z-index), so every marker floats above every hull, not just its own. */
+.hb-marker {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  bottom: calc(100% + 5px);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 2px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 0 0 2.5px var(--ring), 0 3px 0 2.5px rgba(6, 64, 74, 0.22);
+  transform: translateX(-50%);
+  white-space: nowrap;
+  pointer-events: none;
+  transition: background 0.2s ease, padding 0.2s ease;
+}
+
+.hb-marker-icon {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  border-radius: 999px;
+  background: #fff;
+}
+
+.hb-marker-icon svg {
+  width: 13px;
+  height: 13px;
+}
+
+.hb-marker-icon b {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.hb-marker-label {
+  display: none;
+  flex-direction: column;
+  padding-right: 10px;
+  line-height: 1.05;
+  color: var(--fg);
+}
+
+.hb-marker-label strong {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.hb-marker-label small {
+  font-family: var(--font-data);
+  font-size: 9px;
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+/* Open into a pill: hovered, focused, selected, and always for the leader. */
+.hb-ship:hover .hb-marker,
+.hb-ship:focus-visible .hb-marker,
+.hb-ship[data-selected="true"] .hb-marker,
+.hb-ship[data-lead] .hb-marker {
+  height: 34px;
+  padding: 3px;
+  background: var(--c);
+}
+
+.hb-ship:hover .hb-marker-icon,
+.hb-ship:focus-visible .hb-marker-icon,
+.hb-ship[data-selected="true"] .hb-marker-icon,
+.hb-ship[data-lead] .hb-marker-icon {
+  width: 28px;
+  height: 28px;
+}
+
+.hb-ship:hover .hb-marker-label,
+.hb-ship:focus-visible .hb-marker-label,
+.hb-ship[data-selected="true"] .hb-marker-label,
+.hb-ship[data-lead] .hb-marker-label {
+  display: flex;
+}
+
+.hb-ship[data-lead] .hb-marker {
+  box-shadow: 0 0 0 3px #f5c518, 0 3px 0 3px rgba(6, 64, 74, 0.22);
+}
+
+.hb-ship[data-lead] {
+  z-index: 6;
+}
+
+.hb-crown {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 4px);
+  width: 20px;
+  height: 12px;
+  margin-left: -10px;
+}
+
+.is-ghost .hb-marker,
+.is-uncharted .hb-marker {
+  opacity: 0.55;
+  filter: grayscale(1);
+}
+
+/* Current streaks: short dashes riding the water faster than the ripple
+   pattern, which is what reads as the river flowing past the fleet. */
+.hb-current {
+  inset: 0 -240px 0 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='120' stroke='white' stroke-opacity='.28' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='M20 18H58M150 44H176M90 76H132M200 100H228M12 104H30'/%3E%3C/svg%3E");
+  background-size: 240px 120px;
+}
+
+.hb-life {
+  position: relative;
+  height: 100%;
+  pointer-events: none;
+}
+
+.hb-school {
+  position: absolute;
+  width: 70px;
+  height: 20px;
+}
+
+.hb-fish {
+  position: absolute;
+  width: 22px;
+  height: 10px;
+}
+
+.hb-school.is-right .hb-fish {
+  scale: -1 1;
+}
+
+.hb-fish-body {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.hb-ripple {
+  position: absolute;
+  width: 26px;
+  height: 14px;
+  margin: -7px 0 0 -13px;
+  border: 1.5px solid rgba(255, 255, 255, 0.7);
+  border-radius: 50%;
+  opacity: 0;
+}
+
+.hb-leaf {
+  position: absolute;
+  width: 16px;
+  height: 10px;
+  filter: drop-shadow(2px 3px 0 rgba(6, 64, 74, 0.2));
+}
+
+.hb-leaf svg {
+  width: 100%;
+  height: 100%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hb-viewport[data-entering] .hb-ship {
+    animation: hb-race-in var(--enter-dur, 2s) cubic-bezier(0.16, 0.84, 0.3, 1) var(--enter-delay, 0s) both;
+  }
+  /* While racing in, wakes stretch out long behind the ships. */
+  .hb-viewport[data-entering] .hb-wake {
+    animation: hb-wake-stretch 3.2s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+    transform-origin: right center;
+  }
+  .hb-marker {
+    animation: hb-marker-float 2.8s ease-in-out infinite;
+    animation-delay: var(--bob-delay);
+  }
+  .hb-school {
+    animation: hb-swim-left 14s ease-in-out infinite;
+  }
+  .hb-school.is-right {
+    animation-name: hb-swim-right;
+  }
+  .hb-fish {
+    animation: hb-wiggle 0.7s ease-in-out infinite;
+  }
+  .hb-leaf {
+    animation: hb-leaf-turn 7s ease-in-out infinite;
+  }
+  .hb-ripple {
+    animation: hb-ripple 6s ease-out infinite;
+  }
+}
+
+@keyframes hb-race-in {
+  from { translate: calc(var(--enter-from, -1400px) - var(--enter-extra, 0px)) 0; }
+  to { translate: 0 0; }
+}
+
+@keyframes hb-marker-float {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -3px; }
+}
+
+/* Fish are already carried past by the current; these are their own
+   darts on top of it, so they read as alive rather than as debris. */
+@keyframes hb-swim-left {
+  0% { transform: translate(0, 0); opacity: 0; }
+  10% { opacity: 1; }
+  50% { transform: translate(-120px, 12px); }
+  90% { opacity: 1; }
+  100% { transform: translate(-200px, 0); opacity: 0; }
+}
+
+@keyframes hb-swim-right {
+  0% { transform: translate(0, 0); opacity: 0; }
+  10% { opacity: 1; }
+  50% { transform: translate(120px, -12px); }
+  90% { opacity: 1; }
+  100% { transform: translate(200px, 0); opacity: 0; }
+}
+
+@keyframes hb-wake-stretch {
+  from { transform: scaleX(2.4); }
+  to { transform: scaleX(1); }
+}
+
+@keyframes hb-wiggle {
+  0%, 100% { rotate: -5deg; }
+  50% { rotate: 5deg; }
+}
+
+@keyframes hb-leaf-turn {
+  0%, 100% { transform: translateY(0) rotate(-20deg); }
+  50% { transform: translateY(4px) rotate(40deg); }
+}
+
+@keyframes hb-ripple {
+  0% { transform: scale(0.2); opacity: 0; }
+  10% { opacity: 0.8; }
+  60% { transform: scale(1.8); opacity: 0; }
+  100% { transform: scale(1.8); opacity: 0; }
+}

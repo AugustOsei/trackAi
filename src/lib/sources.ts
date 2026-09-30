@@ -102,3 +102,24 @@ export const SOURCE_FILTERS: { value: Report["sourceType"]; label: string }[] = 
 export function tweetIdFromUrl(url: string): string | null {
   return url.match(/(?:twitter|x)\.com\/(?:i\/web\/|[^/]+\/)status(?:es)?\/(\d+)/)?.[1] ?? null;
 }
+
+/** X's snowflake epoch: tweet IDs carry their creation time, in ms since this. */
+const TWITTER_EPOCH = BigInt("1288834974657");
+
+/** When a tweet was posted, read straight out of its ID — no API call. */
+export function tweetPostedAt(url: string): Date | null {
+  const id = tweetIdFromUrl(url);
+  if (!id) return null;
+  const ms = Number((BigInt(id) >> BigInt(22)) + TWITTER_EPOCH);
+  // IDs from before snowflakes (2010) are plain counters and decode to nonsense.
+  return ms > Date.UTC(2010, 10, 4) ? new Date(ms) : null;
+}
+
+/**
+ * When the test itself happened, as best we know: the tweet's own time for
+ * X posts, otherwise when trackai found it. Never the approval time — an old
+ * bookmark imported and approved today is still an old post.
+ */
+export function reportPostedAt(report: { sourceUrl: string; submittedAt: Date }): Date {
+  return tweetPostedAt(report.sourceUrl) ?? report.submittedAt;
+}

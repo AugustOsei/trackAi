@@ -2,6 +2,7 @@ import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { models, reports, reportModels, subscribers } from "@/db/schema";
 import type { Model, Report } from "@/db/schema";
+import { reportPostedAt } from "@/lib/sources";
 
 /** A model as it appears attached to a report. */
 export type ReportModelRef = { id: number; name: string; slug: string; provider: string };
@@ -177,6 +178,21 @@ export async function getRecentApprovedReports(limit = 40) {
     },
   });
   return withModels(rows);
+}
+
+/**
+ * The homepage feed: newest builder tests by when the original post was
+ * made, not when trackai published it. Sorting by approval time put a batch
+ * of old X bookmarks, all imported and approved in the same second, at the
+ * top as "Today" in arbitrary order. Sorted in JS because the post time for
+ * X comes from decoding the tweet ID, not from a column.
+ */
+export async function getLatestBuilderTests(limit = 20) {
+  const all = await getApprovedReportsFeed();
+  return all
+    .map((report) => ({ ...report, postedAt: reportPostedAt(report) }))
+    .sort((a, b) => b.postedAt.getTime() - a.postedAt.getTime())
+    .slice(0, limit);
 }
 
 export async function getModelOptionsForSubmit() {

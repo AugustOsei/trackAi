@@ -50,7 +50,10 @@ export async function getTweetMediaPreview(sourceUrl: string): Promise<TweetMedi
   try {
     const response = await fetch(
       `https://api.vxtwitter.com/${encodeURIComponent(username)}/status/${tweetId}`,
-      { next: { revalidate: 86_400 } },
+      // A hard cap: this is a third-party service, and without one a slow
+      // response held the whole homepage blank for minutes. Past the cap the
+      // post simply shows without an image.
+      { next: { revalidate: 86_400 }, signal: AbortSignal.timeout(2500) },
     );
     if (!response.ok) return null;
 

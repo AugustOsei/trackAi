@@ -77,3 +77,21 @@ export const TASK_LABELS: Record<string, string> = {
   writing: "Writing",
   other: "Other",
 };
+
+const DAY_MS = 86_400_000;
+
+/**
+ * Feed-style time: "Today", "Yesterday", "3d ago", "2w ago", then a date.
+ * Counted in whole UTC days against `now`, so a server render and the date
+ * it describes can't disagree about which day it is.
+ */
+export function formatRelative(value: Date | string, now: number): string {
+  const t = typeof value === "string" ? Date.parse(`${value}T00:00:00Z`) : value.getTime();
+  const day = (ms: number) => Math.floor(ms / DAY_MS);
+  const days = day(now) - day(t);
+  if (days <= 0) return "Today";
+  if (days === 1) return "Yesterday";
+  if (days < 7) return `${days}d ago`;
+  if (days < 30) return `${Math.floor(days / 7)}w ago`;
+  return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(t);
+}

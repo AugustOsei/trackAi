@@ -19,7 +19,7 @@ export function SubscribeForm() {
   }
 
   return (
-    <form action={formAction} className="flex flex-col gap-2 sm:flex-row sm:items-start">
+    <form action={formAction} className="flex flex-col gap-2">
       {/* Honeypot — hidden from people, tempting to naive bots. */}
       <div aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
         <label htmlFor="sub-website">Website</label>
@@ -32,7 +32,7 @@ export function SubscribeForm() {
           name="email"
           required
           placeholder="you@wherever.com"
-          className="font-data w-full rounded-full bg-surface px-4 py-2.5 text-sm text-ink outline-none placeholder:text-ink-faint ring-1 ring-transparent focus-visible:ring-gold"
+          className="font-data w-full rounded-full bg-bg px-4 py-2.5 text-sm text-ink outline-none placeholder:text-ink-faint ring-1 ring-transparent focus-visible:ring-gold"
         />
         {state.error && (
           <p className="mt-1.5 text-xs font-semibold text-gold" role="alert">

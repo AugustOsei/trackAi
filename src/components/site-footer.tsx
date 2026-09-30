@@ -1,7 +1,7 @@
 export function SiteFooter() {
   return (
-    <footer className="mt-auto border-t border-hairline">
-      <div className="mx-auto flex max-w-5xl flex-col gap-2 px-4 py-8 text-xs text-ink-faint sm:flex-row sm:items-center sm:justify-between sm:px-6">
+    <footer className="site-footer mt-auto border-t border-hairline">
+      <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 pt-10 pb-8 text-xs text-ink-faint sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <p className="font-data">
           trackai — claim vs. reality, tracked daily.
         </p>

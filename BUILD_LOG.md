@@ -1386,3 +1386,149 @@ were the same bug.
   announcement itself rather than the write-up. The claim layer promises
   first-party figures; a number that only a third party vouches for doesn't
   belong under a heading with the provider's name on it.
+
+## 2026-09-29 — The harbour: releases as ships moored on a calendar quay
+
+Codex had started a nautical homepage and run out of session mid-way; the
+idea was right and the build wasn't. It drew twelve separate month scenes and
+cut between them, so nothing placed a ship on an actual date, you couldn't
+drag back through the year, the provider badge sat on top of each boat like
+a sticker, and ~1,400 lines of CSS from four abandoned attempts were left in
+globals.css. Reverted all of it (kept its drizzle `.env.local` fix and the
+`/timeline` page) and rebuilt from Augustine's reference image.
+
+- **One continuous world where x is the date.** 56px per day, the whole year
+  on one strip. The camera glides, drags with inertia, takes sideways
+  trackpad swipes and arrow keys, and opens on today. Picking a month glides
+  there instead of cutting.
+- **A concrete quay along the top with the calendar painted on it:** a tick
+  and number for every day, a stencilled month name at every month line.
+  Released ships moor on a timber finger pier at their exact date; same-day
+  releases raft up either side and further out. A crane marks today.
+- **Status is where the ship is.** Released = moored. Announced = sailing in
+  with a wake and a dotted course to its berth. Rumoured = a faded ghost ship.
+  Undated = waiting in a fog bank past Dec 31.
+- **Provider mark painted on the ship's helipad**, inside the same SVG as the
+  hull, so it can't read as floating.
+- **Clouds move at 1.35× the camera**, which is what sells the height, plus
+  a slow drift of their own. Water texture is a viewport-sized layer offset
+  by `x mod tile`, not a 21,000px repainting background.
+- Hydration gotcha worth remembering: random-derived inline style numbers
+  serialise differently on server (`"1070.95px"`) and client (full float).
+  Round anything generated before it goes into `style`.
+
+### Same day, second pass — the fleet sets sail
+
+Augustine: right idea, but they shouldn't all be docked; the newest should be
+out in front with the rest behind, and the water was eating the screen.
+
+- **Ships now sail left to right in eight lanes**, bow tip on the release
+  date, so the newest lead and older ones trail. Lanes are packed oldest to
+  newest (a ship takes a lane whose last occupant has cleared its stern), with
+  the free-lane choice scattered per model so it reads as a flotilla, not a
+  queue. Three vessel types (freighter, yacht, speedboat) chosen per model.
+- **Motion without breaking the dates:** ships stay pinned to their day, and
+  the movement comes from animated wake foam running backwards, a bob, the
+  water pattern drifting, and clouds. Moving ships for real would have made
+  x stop meaning a date.
+- **Land on both banks:** port (container yard, road, calendar apron) on top;
+  stone rim, grass, a road with two lanes of looping traffic, and trees below.
+  The bands are one CSS gradient on the viewport; traffic uses the same
+  `x mod period` trick as the water so it tracks the camera while driving.
+- **Date reading:** a provider-coloured dot on the quay edge at each release,
+  and a dotted tether from bow to quay on hover/selection. Today is a crane on
+  the quay plus a line of buoys across the river — the front of the race.
+
+### Same day, third pass — the homepage goes light (mock-up)
+
+With the harbour in, the dark page around it read as a different site.
+Decided the whole site goes light; homepage first as a mock-up.
+
+- Scoped via `html:has(.theme-harbour)`: the homepage renders that class and
+  the whole document, nav and footer included, swaps its colour tokens —
+  cream page, paper cards, harbour-navy ink, quay-paint yellow. Other pages
+  stay dark until it's approved, then the tokens move to `:root`.
+- Gold is now two jobs: yellow for fills, deep ochre for text (yellow text on
+  cream is unreadable). The mock-up overrides `.text-gold` under the theme;
+  the site-wide version should split it into two tokens properly.
+- Page reads as one landscape: port → river → the far bank running onto sand
+  (`Shore`) → content on cream → the footer as the sea. Section headings use
+  the quay's stencilled paint and the quay edge (yellow line + day ticks) as
+  the divider; cards use the harbour's flat offset shadow.
+
+### Same day, fourth pass — the homepage as a feed page
+
+Augustine didn't like the card stack under the harbour ("What builders
+found"), the kicker-over-heading template, or "The 2026 harbour" as a title
+only an insider would parse. Reference: Reddit's home feed and X's timeline.
+
+- **Hero** now says what trackai is ("Every AI model release, and how it
+  actually performs.") with one line below explaining the ships.
+- **Three columns** (one on phones, two on laptops): new releases + "on the
+  horizon" rail | builder-test feed | a rail with "share a test", how the
+  automation runs (n8n → Claude → human review, from the README), and email
+  signup.
+- **The feed is one sheet with hairline-divided posts**, not separate cards:
+  an X-style "share what you found" box leading to /submit, category tabs
+  (client-side filter over server-rendered posts), source · relative time ·
+  task on each post, model pills and an original-post link underneath.
+- Tried mixing releases and tests in one stream first; rejected — two kinds
+  of post in one list were hard to tell apart. Releases got their own rail.
+- **Why the dates looked stale:** it isn't the UI. There are only 7 approved
+  reports, all approved Sep 1, and the X bookmark importer has no connection
+  row, so nothing new has come in since. The feed shows relative times
+  ("4w ago") honestly rather than hiding it.
+- Removed `FieldNotesFeed` (homepage-only, now unused).
+
+### Same day — feed order by real post time, and prod data locally
+
+Augustine connected X today and the importer pulled in older saved tests.
+Two findings, one fix:
+
+- **Localhost was never showing real data.** `DATABASE_URL` points at a local
+  `trackai_dev` holding 9 seed reports from Sep 1 — that was the "4w ago"
+  feed. Copied production's display tables (models, reports, report_models,
+  suppressed_slugs, x_bookmark_imports) into it with Postgres COPY inside one
+  local transaction, production opened read-only. Deliberately *not* copied:
+  subscribers (real emails), x_bookmark_connections (OAuth tokens — a local
+  session shouldn't be able to act on the X account), submission_attempts.
+  Local pg_dump is v16 and prod is Postgres 18, hence a script, not pg_dump.
+  Local backup from before the copy kept outside the repo.
+- **The feed now sorts by when the test was posted, not when it was
+  approved.** All 39 X imports were approved in the same second, so by
+  approval time they were a block of "Today" in arbitrary order. X post time
+  is decoded from the tweet ID (snowflake: `(id >> 22) + 1288834974657`), no
+  API call; other sources fall back to when trackai found them.
+  `getLatestBuilderTests` / `reportPostedAt`.
+- Noticed, not fixed: the X importer tags "Sonnet 5.5" posts to both Sonnet 5
+  and Sonnet 5.5 (same for Opus), and stores the raw tweet text
+  ("@handle: …") as the takeaway rather than a one-line summary.
+- 37 HN / YouTube / forum tests on recent models are still pending review.
+
+### Same day — the world moves, the fleet holds position
+
+Augustine: the scene still felt parked, because nothing around the ships
+moved. The fix is how racing games do it — camera locked on the fleet, the
+world streaming past.
+
+- **Scenery streams, dates don't.** Port (containers, warehouses, road),
+  water (ripples at two rates for depth, current streaks), water life (fish,
+  leaves, rings, glints), the bank (reeds, trees, a footpath) and clouds
+  (1.35×, closer to the lens) are all repeating tiles shifted by
+  `(camera + distance sailed) mod tile width`. The ships, markers, buoys and
+  a new **timing rail** move with the camera only.
+- **The painted quay became a timing rail** — a dark strip between port and
+  river with day numbers, gold month lines, release dots and today. The
+  dates couldn't stay on scenery that streams: ships would stop sitting on
+  their days.
+- **Launch:** one rAF loop drives the flow at `70 + (1600 − 70)·e^(−t/0.75)`
+  px/s — measured 1,150 px/s at 0.3 s, 330 at 1.6 s when the lead ship
+  lands, settling to cruise. Wakes start stretched 2.4× and relax; bow waves
+  added. Paused off-screen / hidden tab; reduced motion gets a still scene.
+- **Cars and road removed** — they didn't read as motion for the boats.
+- **Why local pages took 80–120 s:** Postgres had stopped answering TCP on
+  :5432 (socket still fine, so `psql` looked healthy). `brew services
+  restart postgresql@16` fixed it. The dev server Codex had started ~7 h
+  earlier was also hung; restarted it from the preview pane. Also capped the
+  X image-preview lookup at 2.5 s and streamed the feed behind `<Suspense>` —
+  in this Next version `fetch` isn't cached by default and blocks the page.
