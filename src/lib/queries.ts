@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { models, reports, reportModels, subscribers } from "@/db/schema";
 import type { Model, Report } from "@/db/schema";
@@ -193,6 +193,16 @@ export async function getLatestBuilderTests(limit = 20) {
     .map((report) => ({ ...report, postedAt: reportPostedAt(report) }))
     .sort((a, b) => b.postedAt.getTime() - a.postedAt.getTime())
     .slice(0, limit);
+}
+
+/** The newest released models — the cargo on the footer's barge. */
+export async function getNewestReleases(limit = 3) {
+  return db
+    .select({ name: models.name, slug: models.slug, provider: models.provider })
+    .from(models)
+    .where(and(eq(models.status, "released"), isNotNull(models.actualDate)))
+    .orderBy(desc(models.actualDate))
+    .limit(limit);
 }
 
 export async function getModelOptionsForSubmit() {

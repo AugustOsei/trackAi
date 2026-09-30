@@ -1199,31 +1199,6 @@ html:has(.theme-harbour) .group:hover .group-hover\:text-gold {
   box-shadow: 0 4px 0 rgba(23, 50, 58, 0.07);
 }
 
-/* Footer as the sea the page ends in. */
-html:has(.theme-harbour) .site-footer {
-  position: relative;
-  margin-top: 64px;
-  border: 0;
-  background-color: #3eb8b7;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' fill='none' stroke='white' stroke-opacity='.12' stroke-width='2.2'%3E%3Cpath d='M20 30Q60 10 90 40T160 50T230 30M10 130Q50 110 90 140T170 150T235 120M30 210Q70 190 110 215T200 220'/%3E%3C/svg%3E");
-  color: rgba(255, 255, 255, 0.9);
-}
-
-html:has(.theme-harbour) .site-footer::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: -1px;
-  height: 22px;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='22' viewBox='0 0 120 22'%3E%3Cpath d='M0 0H120V8Q90 22 60 10T0 8Z' fill='%23e9d9b0'/%3E%3Cpath d='M0 0H120V3Q90 15 60 5T0 3Z' fill='%23f4ecdc'/%3E%3C/svg%3E") repeat-x;
-  background-size: 120px 22px;
-}
-
-html:has(.theme-harbour) .site-footer p {
-  color: rgba(255, 255, 255, 0.88);
-}
-
 /* The logo's yellow dots wash out on cream; a deeper yellow keeps them. */
 html:has(.theme-harbour) .logo-dot {
   background: #e0a800;
@@ -1634,4 +1609,197 @@ html:has(.theme-harbour) .logo-dot {
   10% { opacity: 0.8; }
   60% { transform: scale(1.8); opacity: 0; }
   100% { transform: scale(1.8); opacity: 0; }
+}
+
+/* ------------------------------------------------------------------------
+   Footer: link columns, then the sea the page ends in, then the credits.
+   The sea is a hand-tinted engraving (see components/footer): it keeps its
+   own paper and ink on every page; the columns above follow the theme.
+   ------------------------------------------------------------------------ */
+.ft-sea {
+  position: relative;
+  height: 290px;
+  overflow: hidden;
+  background: #f4ecdc;
+}
+
+.ft-back,
+.ft-front {
+  position: absolute;
+  left: 0;
+  width: calc(100% + 600px);
+  background-repeat: repeat-x;
+}
+
+.ft-back {
+  top: 170px;
+  height: 48px;
+}
+
+.ft-front {
+  bottom: -12px;
+  height: 90px;
+}
+
+.ft-lighthouse {
+  position: absolute;
+  right: 5%;
+  top: 62px;
+}
+
+.ft-convoy {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 610px;
+  height: 290px;
+  /* Three-quarter size, scaled from the waterline (y 212) so the hulls stay
+     in the water — and the funnel sits low enough that every smoke puff has
+     faded out before it reaches the top of the strip. */
+  scale: 0.75;
+  transform-origin: 0 212px;
+  /* `translate`, not `transform`: it sits outside `scale`, so 100vw means
+     the real screen width rather than three-quarters of it. */
+  translate: calc(50vw - 230px) 0;
+}
+
+.ft-convoy-art {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+}
+
+.ft-plate {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  fill: #1f3a42;
+}
+
+.ft-hull-name {
+  font-size: 7px;
+  letter-spacing: 0.22em;
+  fill: #f4ecdc;
+}
+
+.ft-smoke {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+.ft-puff {
+  position: absolute;
+  left: -45px;
+  top: -32px;
+  width: 90px;
+  height: 64px;
+  overflow: visible;
+  opacity: 0;
+}
+
+.ft-credits {
+  background: #1f3a42;
+  color: rgba(244, 236, 220, 0.8);
+}
+
+.ft-credits a {
+  font-weight: 700;
+  color: #f4ecdc;
+  text-underline-offset: 3px;
+}
+
+.ft-credits a:hover {
+  text-decoration: underline;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Left to right across the whole width, then round again. */
+  .ft-convoy {
+    animation: ft-voyage 44s linear infinite;
+  }
+  .ft-convoy-art {
+    animation: ft-bob 3s ease-in-out infinite;
+  }
+  .ft-puff-a {
+    animation: ft-puff-a 7s ease-out infinite;
+  }
+  .ft-puff-b {
+    animation: ft-puff-b 7s ease-out infinite;
+  }
+  .ft-foam {
+    stroke-dasharray: 6 5;
+    animation: ft-foam 0.8s linear infinite;
+  }
+  .ft-foam-slow {
+    animation-duration: 1.6s;
+  }
+  .ft-back {
+    animation: ft-drift 60s linear infinite;
+  }
+  .ft-front {
+    animation: ft-drift 34s linear infinite;
+  }
+  .ft-lamp {
+    animation: ft-lamp 2.4s ease-in-out infinite;
+  }
+}
+
+/* Reduced motion: the convoy waits mid-sea with a still plume. */
+@media (prefers-reduced-motion: reduce) {
+  .ft-puff {
+    opacity: 0.9;
+  }
+  .ft-puff:nth-child(n + 6) {
+    display: none;
+  }
+  .ft-puff:nth-child(1) { transform: translate(-40px, -30px) scale(0.7); }
+  .ft-puff:nth-child(2) { transform: translate(-100px, -44px) scale(0.95); }
+  .ft-puff:nth-child(3) { transform: translate(-170px, -50px) scale(1.15); }
+  .ft-puff:nth-child(4) { transform: translate(-240px, -52px) scale(1.3); }
+  .ft-puff:nth-child(5) { transform: translate(-10px, -12px) scale(0.4); }
+}
+
+/* Starts far enough left that the whole plume is off-screen too. */
+@keyframes ft-voyage {
+  from { translate: -760px 0; }
+  to { translate: 100vw 0; }
+}
+
+@keyframes ft-bob {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(1.5px) rotate(0.35deg); }
+}
+
+/* A puff leaves the funnel small and dense, climbs, swells, then rolls back
+   over the barge as the tug steams on — two paths so the plume isn't a
+   single rigid line. */
+@keyframes ft-puff-a {
+  0% { transform: translate(0, 0) scale(0.22); opacity: 0; }
+  6% { opacity: 1; }
+  30% { transform: translate(-70px, -40px) scale(0.75); }
+  70% { opacity: 0.95; }
+  100% { transform: translate(-330px, -58px) scale(1.55); opacity: 0; }
+}
+
+@keyframes ft-puff-b {
+  0% { transform: translate(0, 0) scale(0.2); opacity: 0; }
+  6% { opacity: 1; }
+  34% { transform: translate(-80px, -52px) scale(0.85); }
+  70% { opacity: 0.95; }
+  100% { transform: translate(-300px, -76px) scale(1.45); opacity: 0; }
+}
+
+@keyframes ft-foam {
+  to { stroke-dashoffset: -11; }
+}
+
+@keyframes ft-drift {
+  to { transform: translateX(-600px); }
+}
+
+@keyframes ft-lamp {
+  0%, 100% { fill: #f5d06a; }
+  50% { fill: #fff3c4; }
 }

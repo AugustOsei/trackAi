@@ -9,6 +9,24 @@ import type { HarbourModel } from "@/components/harbour/layout";
 
 export const dynamic = "force-dynamic";
 
+const SITE_URL = "https://trackai.theaugustdispatch.com";
+
+const STRUCTURED_DATA = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "trackai",
+  url: SITE_URL,
+  description:
+    "Track every AI model release — shipped, announced or rumoured — with release dates and real tests from people building with each model.",
+  creator: {
+    "@type": "Person",
+    name: "Augustine Osei",
+    url: "https://www.linkedin.com/in/augustineosei/",
+  },
+  publisher: { "@type": "Organization", name: "August Engine", url: "https://www.augustengine.com/" },
+  isPartOf: { "@type": "WebSite", name: "The August Dispatch", url: "https://www.theaugustdispatch.com" },
+};
+
 export default async function HomePage() {
   const [models, tests] = await Promise.all([getTimelineModels({}), getLatestBuilderTests(20)]);
 
@@ -44,13 +62,25 @@ export default async function HomePage() {
     // Opts the whole document into the light harbour theme (see globals.css).
     <div className="theme-harbour">
       <div className="mx-auto max-w-7xl px-4 pt-8 pb-6 sm:px-6 sm:pt-12">
+        <script
+          type="application/ld+json"
+          // Structured data for search and answer engines: what the site is
+          // and who made it. Static, so there's nothing user-supplied in it.
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(STRUCTURED_DATA) }}
+        />
         <h1 className="font-display max-w-4xl text-3xl leading-[1.05] font-black tracking-tight text-ink sm:text-5xl">
-          Every AI model release, and how it actually performs.
+          Track every AI model release, and what people build with it.
         </h1>
-        <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-ink-muted sm:text-base">
-          Each ship below is a model, sitting on the day it launched — the newest lead the fleet, faded
-          ships are announced or rumoured. Drag sideways to move through the year, and click a ship to
-          see what builders found when they tried it.
+        {/* The first sentence is the plain definition answer engines quote. */}
+        <p className="mt-4 max-w-3xl text-base leading-relaxed text-ink sm:text-lg">
+          trackai is an AI model release tracker. It logs every model the labs ship, plus the ones
+          announced or rumoured, and collects real tests from people building with them, so you can see
+          how each model holds up beyond its launch benchmarks.
+        </p>
+        <p className="mt-3 max-w-3xl text-sm leading-relaxed text-ink-muted">
+          Each ship is a model, sitting on its release date on the calendar strip. The newest lead the
+          fleet; faded ships haven&rsquo;t launched yet. Drag the harbour or use the month bar below it
+          to move through the year, and click a ship to see its tests.
         </p>
       </div>
 

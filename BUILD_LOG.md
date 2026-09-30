@@ -1558,3 +1558,97 @@ a folder, which the importer (set up yesterday) now pulls in.
   it from the post's own text; anything that could only have come from a
   quoted post (not stored) would have been kept — none did. #120 gained Grok
   4.7, which the bad tags had crowded out of the five-model cap.
+
+### Same day — a footer that moves: the tug and the newest cargo
+
+Reference: a site footer where a steam train crosses a viaduct, smoke
+trailing. Augustine wanted something as alive, suited to trackai (he
+floated a snail on wheels). The site already has a ship mascot and the
+homepage ends in water, so: **a steam tug hauling a barge across the footer
+sea**, smoke puffing from the funnel.
+
+- **The barge carries real data:** its three containers are the three newest
+  releases, painted in provider colours with their logos — the latest cargo
+  to come in. The same three are listed as links above ("Newest arrivals"),
+  so the moving picture isn't the only way to reach them. The footer renders
+  on every page, so the lookup is wrapped: if it fails the barge sails with
+  plain containers rather than breaking the page.
+- Pure SVG + CSS (no client JS): the convoy crosses in 40 s, bobs, and passes
+  in front of a lighthouse with a pulsing lamp and between two wave layers;
+  reduced motion parks it mid-sea.
+- **Links:** Explore (Harbour, Release timeline, Builder tests), Contribute
+  (Share a test, Email alerts), About (About, How tests are reviewed,
+  Privacy, The August Dispatch). Credits band: built by August Engine,
+  concept by Augustine Osei.
+- **New /privacy page**, written only from what the code does: subscriber
+  email + confirm/unsubscribe times, double opt-in, Gmail via n8n; submitted
+  tests with no name/email; a salted SHA-256 of the IP for rate limiting (raw
+  IP never stored); Google Analytics cookies; Vercel / Neon / n8n on Hetzner.
+- Corrected the homepage "How trackai runs" panel, which still claimed
+  HN/Reddit/YouTube were scanned and that nothing publishes automatically.
+  The About page makes the same outdated claims — flagged, not yet changed.
+
+### Same day, second pass — the footer as an engraving
+
+Augustine: right concept, poor execution. The smoke wasn't as rich as the
+reference's, the SVG felt thin, the birds cheap and stiff, and the boat sat
+in the middle instead of crossing and coming back.
+
+- **The richness in the reference is engraving** — outlines plus dense
+  hatching. Hand-writing thousands of hatch strokes isn't practical, so
+  `scripts/generate-footer-art.py` generates them: hatching clipped to each
+  shape (a scanline clip against the polygon), cylinder shading packed
+  tighter toward the shadow side, and smoke billows built from overlapping
+  circles with only the *outside* arcs inked, curls in each lobe and fine
+  hatching on the undersides. Seeded, so re-running reproduces the same art.
+  Output: `src/components/footer/art.ts`.
+- **Hand-tinted, not flat:** ink linework over light washes — gold funnel,
+  brick-red boot-top and lighthouse bands, provider colour on containers.
+- **First tug was wrong** (long, flat, a tent of rigging over it, a wall of
+  tyres). Redrawn with tug proportions: high sweeping bow, raised wheelhouse
+  forward, fat raked funnel, towing arch aft, four fenders not eight.
+- **Motion:** the convoy crosses the full width, turns off-screen and sails
+  back (`ft-voyage`); name plates, logos and the hull name counter-flip
+  (`ft-upright`) so nothing reads mirrored. 14 smoke puffs share 5 billow
+  shapes via `<symbol>`, on two drift paths so the plume isn't one rigid line.
+  Gulls are drawn with separate wings that beat a few times and then glide.
+- The last pass looked "stuck mid-screen" partly because I'd paused it in
+  the shared browser pane to screenshot it. Now I resume after every capture.
+- **Third pass on the footer (Augustine's notes):** the washes were
+  translucent with nothing under them, so the lighthouse showed *through*
+  the moving ships — added an opaque paper base under every solid part
+  (hull, bulwark, cabins, roofs, funnel, barge, containers), tints on top.
+  Smoke was being cut off at the top of the strip: scaled the convoy to 75%
+  from the waterline, so the funnel sits lower and every puff has faded by
+  ~40px below the edge (measured). Gulls removed — they read cheap. Voyage is
+  now one way, left to right, repeating. Gotcha: `scale` applies outside
+  `transform`, so `translateX(100vw)` inside it only travelled 75vw — moved
+  the animation to the independent `translate` property.
+
+### Same day — a hero that explains itself, for people and for search
+
+Augustine wanted the caption to explain trackai to a first-time visitor and
+be SEO/AEO-friendly. The old H1 ("Every AI model release, and how it
+actually performs") described a benefit but never said what the site *is*,
+and the site title ("claim vs. reality, tracked") had none of the words
+people search.
+
+- H1: "Track every AI model release, and what people build with it."
+- First paragraph opens with a plain definition — "trackai is an AI model
+  release tracker…" — the sentence answer engines lift; then a smaller line
+  on how to read the ships and move through the year.
+- Site title → "trackai — AI model release tracker, with real builder tests";
+  description rewritten around release dates, rumours and builder tests (also
+  the default for every page via `seo.ts`, which still said "benchmark
+  claims against reality-check reports").
+- Added schema.org `WebSite` JSON-LD on the homepage: name, description,
+  creator Augustine Osei, publisher August Engine, part of The August
+  Dispatch. Share-image text aligned.
+- **About page brought up to date:** it still said reports come from Hacker
+  News, forums and YouTube, are paraphrased, and that every one — X included
+  — waits in a review queue. Now: reports are real tests, mostly hand-picked
+  X posts (bookmarking *is* the review) plus reader submissions, which are
+  reviewed; talk-only posts are left out. "Review, before anything is public"
+  became "How reports are chosen" (still `#review`, which the footer links
+  to). Credits match the footer: concept by Augustine Osei, built by August
+  Engine, documented on The August Dispatch.

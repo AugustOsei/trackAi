@@ -50,36 +50,42 @@ export default function AboutPage() {
 
         <div>
           <h3 className="font-display text-xs font-black tracking-[0.15em] text-gold">
-            REALITY — REVIEWED REPORTS
+            REALITY — REAL-WORLD TESTS
           </h3>
           <p className="mt-2 text-ink">
-            Reports start as posts on Hacker News, developer forums,
-            YouTube, or X, or as submissions from readers, describing what
-            happened when someone actually used a model on a real task.
-            Each one is summarized into a short takeaway and a task tag,
-            never a copy of the original text, with a link back to the
-            source. A post from X is the one exception: X provides its own
-            public embed, so that post shows up on the page exactly as
-            posted, carrying its own attribution, instead of being
-            paraphrased like everything else. Nothing here is confirmed
-            information the way a release date is; it’s one person’s
-            account, and it’s presented that way.
+            A report is a real test: someone putting a model to work on an
+            actual task and showing what came out. Most come from X, where
+            people share what they&rsquo;ve built with a new model. Those
+            posts are hand-picked &mdash; each one is read and saved to a
+            dedicated bookmark folder, which trackai imports automatically
+            &mdash; and they appear exactly as posted, with the author&rsquo;s
+            own attribution and a link back.
+          </p>
+          <p className="mt-2 text-ink">
+            The rest are shared by readers through this site: a one-line
+            takeaway, a task tag and a link to the source. Nothing here is
+            confirmed information the way a release date is; each report is
+            one person&rsquo;s account, and it&rsquo;s presented that way.
           </p>
         </div>
       </section>
 
-      <section className="mt-12">
+      <section id="review" className="mt-12 scroll-mt-6">
         <h2 className="font-display text-3xl font-black tracking-tight text-ink">
-          Review, before anything is public
+          How reports are chosen
         </h2>
         <p className="mt-2 text-ink">
-          Because reality-check reports are lower-confidence than confirmed
-          releases, nothing from that layer goes live automatically. Every
-          report, whether it&rsquo;s sourced from Hacker News, developer
-          forums, YouTube, X, or submitted directly, sits in a review queue
-          until it&rsquo;s approved. Rejected reports never appear on the
-          site. There&rsquo;s no algorithmic ranking or voting behind what
-          gets published; it&rsquo;s a single editorial pass.
+          Every report on trackai has been picked by a person. Posts from X
+          are chosen at the source: one is only imported after it&rsquo;s
+          been read and bookmarked as a genuine test, so choosing it is the
+          review. Reports shared by readers wait in a review queue until
+          they&rsquo;re approved, and rejected ones never appear.
+        </p>
+        <p className="mt-2 text-ink">
+          Posts that only talk about a model &mdash; opinions, hype,
+          launch-day reactions &mdash; are left out; a report has to show the
+          model being used. There&rsquo;s no algorithmic ranking or voting
+          behind what&rsquo;s published.
         </p>
       </section>
 
@@ -130,14 +136,18 @@ export default function AboutPage() {
           Who&rsquo;s behind this
         </h2>
         <p className="mt-2 text-ink">
-          trackai is built by{" "}
+          trackai is a concept by{" "}
           <a
             href="https://www.linkedin.com/in/augustineosei/"
             className="text-gold hover:underline"
           >
             Augustine Osei
           </a>
-          , in public, on{" "}
+          , built by{" "}
+          <a href="https://www.augustengine.com/" className="text-gold hover:underline">
+            August Engine
+          </a>
+          , and documented in public on{" "}
           <a
             href="https://www.theaugustdispatch.com"
             className="text-gold hover:underline"

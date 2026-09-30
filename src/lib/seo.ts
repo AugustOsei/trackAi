@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 const SITE_NAME = "trackai";
 const DEFAULT_DESCRIPTION =
-  "An AI model release tracker that pairs every benchmark claim against independently sourced reality-check reports.";
+  "Track every AI model release — shipped, announced or rumoured — with release dates and real tests from people building with each model.";
 
 /**
  * Composes a page's title/description into full Open Graph and Twitter Card

@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
-export const alt = "trackai — claim vs. reality, tracked";
+export const alt = "trackai — every AI model release, and what people build with it";
 
 /** Provider brand colors, echoing the site's own badges — plain dots here,
  * not logos, since a promotional share image is the wrong place to be
@@ -52,7 +52,7 @@ export default function OpengraphImage() {
           }}
         >
           <span style={{ color: "#f7f7f5" }}>Every release.</span>
-          <span style={{ color: "#f5c518" }}>Every claim, tested.</span>
+          <span style={{ color: "#f5c518" }}>What people build with it.</span>
         </div>
 
         <div style={{ display: "flex", marginTop: 8 }}>

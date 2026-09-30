@@ -20,9 +20,9 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 const SITE_URL = "https://trackai.theaugustdispatch.com";
-const TITLE = "trackai — claim vs. reality, tracked";
+const TITLE = "trackai — AI model release tracker, with real builder tests";
 const DESCRIPTION =
-  "An AI model release tracker that pairs every benchmark claim against independently sourced reality-check reports.";
+  "Track every AI model release — shipped, announced or rumoured — with release dates and real tests from people building with each model.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

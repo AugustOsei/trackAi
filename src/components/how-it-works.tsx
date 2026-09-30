@@ -11,12 +11,12 @@ const PIPELINE = [
     body: "Leaks and reports of upcoming models are tracked as rumours until a provider confirms them.",
   },
   {
-    title: "Real tests are gathered",
-    body: "Hacker News, Reddit, YouTube, developer forums and X are scanned for people actually using each model.",
+    title: "Real tests are hand-picked",
+    body: "Posts on X where people show what they actually built with a model are bookmarked by hand and imported automatically.",
   },
   {
-    title: "A person reviews every test",
-    body: "Nothing is published automatically — each test is checked before it appears here.",
+    title: "Reader tests are reviewed",
+    body: "Tests shared through this site wait for review; nothing a reader submits goes live on its own.",
   },
 ];
 
@@ -69,7 +69,7 @@ export function HowItWorks() {
         </p>
       </section>
 
-      <section className="side-panel p-4">
+      <section id="subscribe" className="side-panel scroll-mt-6 p-4">
         <h2 className="font-display text-base font-black text-ink">Get an email when a model launches</h2>
         <p className="mt-1 text-sm text-ink-muted">One short email per new model.</p>
         <div className="mt-3">
