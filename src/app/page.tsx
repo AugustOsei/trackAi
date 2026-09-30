@@ -71,16 +71,13 @@ export default async function HomePage() {
         <h1 className="font-display max-w-4xl text-3xl leading-[1.05] font-black tracking-tight text-ink sm:text-5xl">
           Track every AI model release, and what people build with it.
         </h1>
-        {/* The first sentence is the plain definition answer engines quote. */}
+        {/* A plain definition answer engines can quote; the longer welcome
+            lives on the About page. */}
         <p className="mt-4 max-w-3xl text-base leading-relaxed text-ink sm:text-lg">
-          trackai is an AI model release tracker. It logs every model the labs ship, plus the ones
-          announced or rumoured, and collects real tests from people building with them, so you can see
-          how each model holds up beyond its launch benchmarks.
-        </p>
-        <p className="mt-3 max-w-3xl text-sm leading-relaxed text-ink-muted">
-          Each ship is a model, sitting on its release date on the calendar strip. The newest lead the
-          fleet; faded ships haven&rsquo;t launched yet. Drag the harbour or use the month bar below it
-          to move through the year, and click a ship to see its tests.
+          An AI model release tracker, with real tests from the people building with each model.{" "}
+          <Link href="/about" className="whitespace-nowrap text-ink-muted underline-offset-4 hover:text-gold hover:underline">
+            More about trackai →
+          </Link>
         </p>
       </div>
 
@@ -88,12 +85,15 @@ export default async function HomePage() {
       <Shore />
 
       <div className="mx-auto max-w-7xl px-4 pb-6 sm:px-6">
-        <p className="font-data text-right text-[11px] text-ink-faint">
-          Prefer a list?{" "}
-          <Link href="/timeline" className="text-ink-muted hover:text-gold">
-            Open the timeline →
-          </Link>
-        </p>
+        <div className="font-data flex flex-wrap justify-between gap-x-6 gap-y-1 text-[11px] text-ink-faint">
+          <p>Each ship is a model on its release date. Faded ones haven&rsquo;t launched. Click a ship to see its tests.</p>
+          <p>
+            Prefer a list?{" "}
+            <Link href="/timeline" className="text-ink-muted hover:text-gold">
+              Open the timeline →
+            </Link>
+          </p>
+        </div>
 
         {/* Three columns on wide screens (releases | tests feed | about),
             two on laptops (the release rail moves above the about rail), and

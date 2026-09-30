@@ -1652,3 +1652,15 @@ people search.
   became "How reports are chosen" (still `#review`, which the footer links
   to). Credits match the footer: concept by Augustine Osei, built by August
   Engine, documented on The August Dispatch.
+
+## 2026-09-30 — Lighter hero
+
+The two-paragraph intro under the H1 pushed the harbour down and explained
+the ships before anyone had seen them.
+
+- Hero copy cut to one line: "An AI model release tracker, with real tests
+  from the people building with each model." plus a "More about trackai →"
+  link — the About page carries the warm introduction now.
+- The how-to-read-the-ships line moved under the harbour as a small hint,
+  beside "Prefer a list? Open the timeline →". Dropped the drag/month-bar
+  instructions; the month bar explains itself.
