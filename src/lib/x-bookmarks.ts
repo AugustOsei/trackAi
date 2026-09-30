@@ -18,6 +18,7 @@ import {
 } from "@/db/schema";
 import { env } from "@/lib/env";
 import { tweetIdFromUrl } from "@/lib/sources";
+import { matchModels } from "@/lib/model-match";
 
 const X_API = "https://api.x.com/2";
 const CONNECTION_ID = 1;
@@ -286,26 +287,6 @@ async function lookupPosts(ids: string[], accessToken: string) {
   return { posts, users, referencedPosts };
 }
 
-function normalized(value: string) {
-  return ` ${value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim()} `;
-}
-
-function modelAliases(model: { name: string; slug: string; provider: string }) {
-  const aliases = new Set([normalized(model.name), normalized(model.slug)]);
-  const name = normalized(model.name).trim();
-  if (name.startsWith("claude ")) aliases.add(` ${name.slice("claude ".length)} `);
-  const provider = normalized(model.provider).trim();
-  if (provider && name.startsWith(`${provider} `)) aliases.add(` ${name.slice(provider.length + 1)} `);
-  return [...aliases].filter((alias) => alias.trim().length >= 2);
-}
-
-function matchModels(text: string, candidates: { id: number; name: string; slug: string; provider: string }[]) {
-  const haystack = normalized(text);
-  return candidates
-    .filter((model) => modelAliases(model).some((alias) => haystack.includes(alias)))
-    .slice(0, MAX_MODELS_PER_REPORT);
-}
-
 function taskCategory(text: string): "coding" | "agentic" | "vision" | "writing" | "other" {
   const value = text.toLowerCase();
   if (/\b(code|coding|program|repo|debug|frontend|backend|app|website|terminal)\b/.test(value)) return "coding";
@@ -409,7 +390,7 @@ export async function importXBookmarkFolder(): Promise<XImportSummary> {
         .map((reference) => referencedPosts.get(reference.id))
         .map((reference) => reference?.note_tweet?.text ?? reference?.text ?? "")
         .join(" ");
-      const matched = matchModels(`${text} ${referencedText}`, candidates);
+      const matched = matchModels(`${text} ${referencedText}`, candidates, MAX_MODELS_PER_REPORT);
       const sourceUrl = storedImport?.sourceUrl ?? (username
         ? `https://x.com/${username}/status/${post.id}`
         : `https://x.com/i/web/status/${post.id}`);

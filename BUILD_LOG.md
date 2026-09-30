@@ -1532,3 +1532,29 @@ world streaming past.
   earlier was also hung; restarted it from the preview pane. Also capped the
   X image-preview lookup at 2.5 s and streamed the feed behind `<Suspense>` —
   in this Next version `fetch` isn't cached by default and blocks the page.
+
+## 2026-09-30 — X is the only real source; fixing the importer's model tags
+
+Augustine: the Hacker News / Reddit / YouTube / forum "tests" are mostly
+people's posts, not tests. The real ones are the X posts he bookmarks into
+a folder, which the importer (set up yesterday) now pulls in.
+
+- **Rejected on production:** all 37 pending non-X reports, and unpublished
+  the 9 approved ones (set to rejected, not pending, so they don't come back
+  into the queue). Live now: 39 X tests + 2 manual submissions. The n8n
+  workflows for those sources (02, 04, 05, 06) are still running and will keep
+  filling the queue — Augustine to switch them off in n8n.
+- **The tagging bug:** matching normalised dots to spaces, so "Sonnet 5.5"
+  read as "sonnet 5 5" with "sonnet 5" inside it — every X.5 post also got
+  the X.0 model. Fixed in a new, dependency-free `src/lib/model-match.ts`:
+  a dot between digits now survives normalisation, and the longest matched
+  name wins ("GPT-6 Sol" no longer also tags GPT-6). 12 cases from real posts
+  pass, including a genuine "Opus 5.5 vs Opus 5" comparison that keeps both.
+- **First attempt was wrong, caught in the dry run:** a "digits after the
+  version" rule read "Opus 5.5: $1.52" as a version and dropped Opus 5.5.
+  Keeping version dots at the source replaced that rule entirely.
+- **Repaired all 19 imported posts on production**, with a backup of the 48
+  prior links. A tag was re-judged only if the old matcher would have produced
+  it from the post's own text; anything that could only have come from a
+  quoted post (not stored) would have been kept — none did. #120 gained Grok
+  4.7, which the bad tags had crowded out of the five-model cap.
