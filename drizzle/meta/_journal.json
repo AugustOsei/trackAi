@@ -99,6 +99,20 @@
       "when": 1790707200000,
       "tag": "0013_x_bookmark_importer",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1791993600000,
+      "tag": "0014_october_2026_models",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1792000000000,
+      "tag": "0015_remove_expired_rumors",
+      "breakpoints": true
     }
   ]
 }

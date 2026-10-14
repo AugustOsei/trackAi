@@ -745,7 +745,79 @@ export const SEED: NewModel[] = [
     ...price("10.000"),
   },
 
-  // ── Unconfirmed: announced or rumored, not sourced claims ────────────────
+  // ── October 2026 ───────────────────────────────────────────────────────────────
+  {
+    name: "Qwen-Image-2.1 Pro",
+    slug: "qwen-image-2-1-pro",
+    provider: "Alibaba",
+    announcementUrl: "https://docs.qwencloud.com/changelog/models",
+    status: "released",
+    actualDate: "2026-10-02",
+    providerBlurb:
+      "A unified text-to-image generation and editing model with native transparent-image support, multi-reference editing and local edit controls.",
+  },
+  {
+    name: "Gemini Nano Banana 2.1",
+    slug: "gemini-nano-banana-2-1",
+    provider: "Google DeepMind",
+    announcementUrl: "https://ai.google.dev/gemini-api/docs/changelog",
+    status: "released",
+    actualDate: "2026-10-06",
+    providerBlurb:
+      "Google's high-efficiency image generation and conversational editing model, with stronger prompt adherence, character consistency, text rendering and panoramic output.",
+  },
+  {
+    name: "Mistral Large 4",
+    slug: "mistral-large-4",
+    provider: "Mistral AI",
+    announcementUrl: "https://mistral.ai/news/mistral-large-4/",
+    status: "released",
+    actualDate: "2026-10-06",
+    providerBlurb:
+      "Mistral's largest model to date, a natively multimodal mixture-of-experts model for coding, agentic workflows and enterprise work with a 1M-token context window.",
+    ...price("4.180"),
+  },
+  {
+    name: "Claude Haiku 5.5",
+    slug: "claude-haiku-5-5",
+    provider: "Anthropic",
+    announcementUrl: "https://www.anthropic.com/claude-haiku-5-5",
+    claimedBenchmarks: [
+      { label: "OSWorld 2.1 (offline subset)", value: "72.4%" },
+      { label: "Humanity's Last Exam (tools)", value: "57.4%" },
+      { label: "Terminal-Bench 4.0", value: "39.2%" },
+      { label: "FrontierCode 1.1 (Main)", value: "46.4%" },
+    ],
+    status: "released",
+    actualDate: "2026-10-07",
+    providerBlurb:
+      "Anthropic's fastest small model, designed for high-volume, cost-sensitive work such as summaries, compaction, classification, subagents and latency-sensitive browser use.",
+    ...price("0.500"),
+  },
+  {
+    name: "Qwen-Image-2.1 Turbo",
+    slug: "qwen-image-2-1-turbo",
+    provider: "Alibaba",
+    announcementUrl: "https://docs.qwencloud.com/changelog/models",
+    status: "released",
+    actualDate: "2026-10-09",
+    providerBlurb:
+      "The cost- and speed-oriented Qwen-Image-2.1 tier, with unified generation and editing, native transparency, multiple references and local controls.",
+  },
+  {
+    name: "Gemini 4 Argon",
+    slug: "gemini-4-argon",
+    provider: "Google DeepMind",
+    announcementUrl:
+      "https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-gemini-4-argon/",
+    status: "released",
+    actualDate: "2026-10-13",
+    providerBlurb:
+      "Google's frontier reasoning model for long-horizon work across coding, finance, legal, cybersecurity and science, with a unified 1M-token input-output limit.",
+    ...price("10.000"),
+  },
+
+  // ── Unconfirmed: announced or rumored, not sourced claims ───────────────
   {
     name: "Qwen 4",
     slug: "qwen-4",

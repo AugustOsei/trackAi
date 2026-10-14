@@ -32,6 +32,7 @@ const PROVIDER_ALIASES = new Map<string, string>([
 ]);
 
 const MODEL_ALIASES = new Map<string, { name: string; slug: string }>([
+  ["haiku-5-5", { name: "Claude Haiku 5.5", slug: "claude-haiku-5-5" }],
   ["opus-6", { name: "Claude Opus 6", slug: "claude-opus-6" }],
 ]);
 

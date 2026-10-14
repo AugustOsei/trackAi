@@ -12,11 +12,14 @@ const OFFICIAL_SOURCES = [
   "deepseek.com",
   "qwen.ai",
   "qwencloud.com",
+  "docs.qwencloud.com",
   "alibabacloud.com",
   "z.ai",
   "moonshot.ai",
   "kimi.com",
   "minimax.io",
+  "mistral.ai",
+  "docs.mistral.ai",
   "sakana.ai",
 ] as const;
 
