@@ -7,7 +7,8 @@ import { ReleasePanel, type PanelModel } from "@/components/home/release-panel";
 import { Harbour } from "@/components/harbour/harbour";
 import type { HarbourModel } from "@/components/harbour/layout";
 
-export const dynamic = "force-dynamic";
+// Reuse the rendered homepage between visits; new releases appear within five minutes.
+export const revalidate = 300;
 
 const SITE_URL = "https://trackai.theaugustdispatch.com";
 

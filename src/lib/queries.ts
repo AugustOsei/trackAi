@@ -3,11 +3,12 @@ import { db } from "@/db";
 import { models, reports, reportModels, subscribers } from "@/db/schema";
 import type { Model, Report } from "@/db/schema";
 import { reportPostedAt } from "@/lib/sources";
+import { unstable_cache } from "next/cache";
 
 /** A model as it appears attached to a report. */
 export type ReportModelRef = { id: number; name: string; slug: string; provider: string };
 
-export async function getTimelineModels(filters: {
+export const getTimelineModels = unstable_cache(async function getTimelineModels(filters: {
   status?: Model["status"];
   provider?: string;
 }) {
@@ -59,15 +60,15 @@ export async function getTimelineModels(filters: {
   }
 
   return rows.map((m) => ({ ...m, reports: byModel.get(m.id) ?? [] }));
-}
+}, ["timeline-models"], { revalidate: 300 });
 
-export async function getProviders() {
+export const getProviders = unstable_cache(async function getProviders() {
   const rows = await db
     .selectDistinct({ provider: models.provider })
     .from(models)
     .orderBy(models.provider);
   return rows.map((r) => r.provider);
-}
+}, ["timeline-providers"], { revalidate: 300 });
 
 export async function getModelBySlug(slug: string) {
   const model = await db.query.models.findFirst({ where: eq(models.slug, slug) });
@@ -196,14 +197,14 @@ export async function getLatestBuilderTests(limit = 20) {
 }
 
 /** The newest released models — the cargo on the footer's barge. */
-export async function getNewestReleases(limit = 3) {
+export const getNewestReleases = unstable_cache(async function getNewestReleases(limit = 3) {
   return db
     .select({ name: models.name, slug: models.slug, provider: models.provider })
     .from(models)
     .where(and(eq(models.status, "released"), isNotNull(models.actualDate)))
     .orderBy(desc(models.actualDate))
     .limit(limit);
-}
+}, ["newest-releases"], { revalidate: 300 });
 
 export async function getModelOptionsForSubmit() {
   return db

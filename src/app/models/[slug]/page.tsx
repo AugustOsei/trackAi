@@ -8,14 +8,22 @@ import { ReportCard } from "@/components/report-card";
 import { TASK_LABELS, formatDate, formatPrice } from "@/lib/format";
 import { pageMetadata } from "@/lib/seo";
 import type { Metadata } from "next";
+import { cache } from "react";
 
-export const dynamic = "force-dynamic";
+// Generate model pages on first visit, then reuse them for five minutes.
+export const revalidate = 300;
+export async function generateStaticParams() {
+  return [];
+}
+
+// Metadata and the page need the same model during one render.
+const getModelForPage = cache(getModelBySlug);
 
 export async function generateMetadata({
   params,
 }: PageProps<"/models/[slug]">): Promise<Metadata> {
   const { slug } = await params;
-  const model = await getModelBySlug(slug);
+  const model = await getModelForPage(slug);
   if (!model) return {};
   return pageMetadata({
     title: `${model.name} — claim vs. reality`,
@@ -27,7 +35,7 @@ export default async function ModelDetailPage({
   params,
 }: PageProps<"/models/[slug]">) {
   const { slug } = await params;
-  const model = await getModelBySlug(slug);
+  const model = await getModelForPage(slug);
   if (!model) notFound();
 
   const claims = model.claimedBenchmarks ?? [];
